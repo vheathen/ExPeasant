@@ -34,3 +34,8 @@ npm-debug.log
 /*/priv/static/
 
 /*/.elixir_ls/
+
+# Database
+/panel/data
+
+/firmware/config/target.secret.exs

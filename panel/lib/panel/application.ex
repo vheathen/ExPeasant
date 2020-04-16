@@ -6,8 +6,16 @@ defmodule Panel.Application do
   use Application
 
   def start(_type, _args) do
+    cubdb = Application.get_env(:panel, :paneldb, "data/paneldb")
+
     # List all child processes to be supervised
     children = [
+      # Start CubDB
+      %{
+        id: CubDB,
+        start: {CubDB, :start_link, [cubdb]}
+      },
+
       # Start the endpoint when the application starts
       PanelWeb.Endpoint
       # Starts a worker by calling: Panel.Worker.start_link(arg)
