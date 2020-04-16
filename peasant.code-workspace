@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "panel"
+		},
+		{
+			"path": "firmware"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {}
+}
