@@ -102,3 +102,11 @@ config :mdns_lite,
 # Uncomment to use target specific configurations
 
 # import_config "#{Mix.target()}.exs"
+
+# Don't forget to create a secret file with
+#
+# config :panel, PanelWeb.Endpoint,
+#   secret_key_base: "SECRET_KEY_BASE with `mix phx.gen.secret`",
+#   live_view: [signing_salt: "SIGNING_SALT with `mix phx.gen.secret 32`"]
+
+import_config "target.secret.exs"

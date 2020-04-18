@@ -7,6 +7,13 @@
 # General application configuration
 use Mix.Config
 
+#
+config :panel, Panel.Tools,
+  types: [
+    Panel.Tools.Sleeper,
+    Panel.Tools.GenericRelay
+  ]
+
 # Configures the endpoint
 config :panel, PanelWeb.Endpoint,
   url: [host: "localhost"],

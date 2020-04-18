@@ -41,7 +41,8 @@ defmodule Panel.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:ecto, "~> 3.4.0"},
       {:elixir_uuid, "~> 1.2"},
-      {:cubdb, "~> 1.0.0-rc.1"}
+      {:cubdb, "~> 1.0.0-rc.1"},
+      {:circuits_gpio, "~> 0.4"}
     ]
   end
 end
