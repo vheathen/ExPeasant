@@ -1,12 +1,19 @@
 {
 	"folders": [
 		{
+			"name": "peasant",
+			"path": "peasant"
+		},
+		{
+			"name": "panel",
 			"path": "panel"
 		},
 		{
+			"name": "firmware",
 			"path": "firmware"
 		},
 		{
+			"name": "nerves_poc",
 			"path": "."
 		}
 	],

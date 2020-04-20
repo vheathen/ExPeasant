@@ -20,7 +20,7 @@ erl_crash.dump
 *.ez
 
 # Ignore package tarball (built via "mix hex.build").
-panel-*.tar
+peasant-*.tar
 
 # If NPM crashes, it generates a log, let's ignore it too.
 npm-debug.log
@@ -36,6 +36,9 @@ npm-debug.log
 /*/.elixir_ls/
 
 # Database
-/panel/data
+/peasant/data
+
+# The old impl
+/panel/
 
 /firmware/config/target.secret.exs
