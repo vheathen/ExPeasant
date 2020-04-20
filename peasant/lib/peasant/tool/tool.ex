@@ -13,6 +13,9 @@ defmodule Peasant.Tool do
 
       @spec register(tool_spec :: map()) :: {:ok, Ecto.UUID} | {:error, term()}
       def register(tool_spec), do: unquote(__MODULE__).register(__MODULE__, tool_spec)
+
+      import unquote(__MODULE__)
+      build_standard_events()
     end
   end
 
@@ -28,6 +31,22 @@ defmodule Peasant.Tool do
       tool ->
         Handler.register(tool)
         {:ok, tool.uuid}
+    end
+  end
+
+  defmacro build_standard_events do
+    quote do
+      build_registered_event()
+    end
+  end
+
+  defmacro build_registered_event do
+    quote do
+      defmodule Registered do
+        defstruct [:tool]
+
+        def new(tool), do: struct(__MODULE__, %{tool: tool})
+      end
     end
   end
 end

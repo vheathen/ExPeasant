@@ -17,7 +17,7 @@ defmodule Peasant.ToolTest do
     test "should intoduce State struct and functions", do: :ok
   end
 
-  describe "register/1" do
+  describe "Registration and register/1" do
     @describetag :unit
 
     test "should exist" do
@@ -33,6 +33,11 @@ defmodule Peasant.ToolTest do
     test "should return {:error, error} in case of incorrect tool specs" do
       tool = new_tool() |> Map.delete(:name)
       assert {:error, _} = FakeTool.register(tool)
+    end
+
+    test "should introduce __Tool__.Registeted event struct", %{tool: tool} do
+      assert Code.ensure_compiled(FakeTool.Registered)
+      assert %FakeTool.Registered{tool: ^tool} = FakeTool.Registered.new(tool)
     end
   end
 
