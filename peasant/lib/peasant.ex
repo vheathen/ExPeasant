@@ -6,4 +6,12 @@ defmodule Peasant do
   Contexts are also responsible for managing your data, regardless
   if it comes from the database, an external API or others.
   """
+
+  alias Phoenix.PubSub
+
+  @pubsub Peasant.PubSub
+
+  def subscribe(topic), do: PubSub.subscribe(@pubsub, topic)
+
+  def broadcast(topic, event), do: PubSub.broadcast(@pubsub, topic, event)
 end

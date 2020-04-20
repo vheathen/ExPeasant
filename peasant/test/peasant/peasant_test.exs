@@ -1,7 +1,5 @@
-defmodule Peasant.NotificationsTest do
+defmodule PeasantTest do
   use Peasant.GeneralCase
-
-  alias Peasant.Notifications, as: N
 
   @pubsub Peasant.PubSub
 
@@ -13,7 +11,7 @@ defmodule Peasant.NotificationsTest do
       tool_uuid: UUID.uuid4()
     }
 
-    N.subscribe(topic)
+    Peasant.subscribe(topic)
 
     [topic: topic, message: message]
   end
@@ -38,9 +36,14 @@ defmodule Peasant.NotificationsTest do
       topic: topic,
       message: message
     } do
-      N.broadcast(topic, message)
+      Peasant.broadcast(topic, message)
 
       assert_receive ^message
+    end
+  end
+
+  describe "build_topic/2" do
+    test "should build a topic in 'left:right' format" do
     end
   end
 end
