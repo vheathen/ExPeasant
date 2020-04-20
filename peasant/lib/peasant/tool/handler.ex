@@ -18,7 +18,14 @@ defmodule Peasant.Tool.Handler do
   ####
   # Implementation
 
-  def init(args) do
-    {:ok, args}
+  def init(tool) do
+    {:ok, tool, {:continue, :registered}}
+  end
+
+  def handle_continue(:registered, %handler{} = tool) do
+    registered = Module.concat(handler, Registered).new(tool)
+    Peasant.broadcast("tools", registered)
+
+    {:noreply, tool}
   end
 end
