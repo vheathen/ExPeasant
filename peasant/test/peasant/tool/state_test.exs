@@ -40,6 +40,11 @@ defmodule Peasant.Tool.StateTest do
                 ]} = state_params |> Map.delete(req_field) |> FakeState.new()
       end)
     end
+
+    test "should have :attached field", %{state: state} do
+      assert Map.has_key?(state, :attached)
+      assert state.attached == false
+    end
   end
 
   defp check_recursive(left, right) do

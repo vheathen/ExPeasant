@@ -11,6 +11,7 @@ defmodule Peasant.Tool.State do
         field(:name, :string)
         field(:config, :map)
         field(:placement, :string)
+        field(:attached, :boolean, default: false)
       end
 
       @cast_fields ~w(
