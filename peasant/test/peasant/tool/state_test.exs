@@ -1,7 +1,5 @@
 defmodule Peasant.Tool.StateTest do
-  use ExUnit.Case
-
-  import Peasant.Factory
+  use Peasant.GeneralCase
 
   defmodule FakeState do
     use Peasant.Tool.State, no_config: true
@@ -13,7 +11,7 @@ defmodule Peasant.Tool.StateTest do
   ]
 
   setup do
-    state_params = build(:new_fake_tool)
+    state_params = new_tool()
 
     state = FakeState.new(state_params)
 

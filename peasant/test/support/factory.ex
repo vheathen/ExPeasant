@@ -1,7 +1,7 @@
 defmodule Peasant.Factory do
   use ExMachina
 
-  def new_fake_tool_factory do
+  def new_tool_factory do
     %{
       name: Faker.Lorem.word(),
       config: %{},

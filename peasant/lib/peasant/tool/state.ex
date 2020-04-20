@@ -24,6 +24,7 @@ defmodule Peasant.Tool.State do
         config
       )a
 
+      @impl true
       def changeset(state, params) do
         state
         |> cast(params, @cast_fields)
