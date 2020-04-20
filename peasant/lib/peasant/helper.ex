@@ -3,8 +3,8 @@ defmodule Peasant.Helper do
   Various support functions
   """
 
-  @spec via_tuple(id :: any) :: {:via, Registry, {PeasantRegistry, any}}
-  def via_tuple(id), do: {:via, Registry, {PeasantRegistry, id}}
+  @spec via_tuple(id :: any) :: {:via, Registry, {Peasant.Registry, any}}
+  def via_tuple(id), do: {:via, Registry, {Peasant.Registry, id}}
 
   @spec handler_child_spec(handler :: atom(), params :: %{required(:uuid) => Ecto.UUID}) ::
           Supervisor.child_spec()

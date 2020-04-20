@@ -9,7 +9,10 @@ defmodule Peasant.Application do
     # List all child processes to be supervised
     children = [
       # Application Registry
-      {Registry, keys: :unique, name: PeasantRegistry},
+      {Registry, keys: :unique, name: Peasant.Registry},
+
+      # Toolbox dynamic supervisor
+      Peasant.Toolbox,
 
       # Start the endpoint when the application starts
       PeasantWeb.Endpoint

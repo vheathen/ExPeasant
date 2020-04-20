@@ -6,7 +6,7 @@ defmodule Peasant.HelperTest do
   test "via_tuple/1 should return a correct tuple" do
     uuid = UUID.uuid4()
 
-    assert {:via, Registry, {PeasantRegistry, ^uuid}} = Helper.via_tuple(uuid)
+    assert {:via, Registry, {Peasant.Registry, ^uuid}} = Helper.via_tuple(uuid)
   end
 
   test "child_spec/2 should return a correct child spec" do
