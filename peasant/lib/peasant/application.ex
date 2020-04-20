@@ -6,18 +6,22 @@ defmodule Peasant.Application do
   use Application
 
   def start(_type, _args) do
-    # List all child processes to be supervised
     children = [
+      # Start the Telemetry supervisor
+      PeasantWeb.Telemetry,
+      # Start the PubSub system
+      {Phoenix.PubSub, name: Peasant.PubSub},
+
       # Application Registry
       {Registry, keys: :unique, name: Peasant.Registry},
 
       # Toolbox dynamic supervisor
       Peasant.Toolbox,
 
-      # Start the endpoint when the application starts
+      # Start the Endpoint (http/https)
       PeasantWeb.Endpoint
-      # Starts a worker by calling: Peasant.Worker.start_link(arg)
-      # {Peasant.Worker, arg},
+      # Start a worker by calling: Peasant.Worker.start_link(arg)
+      # {Peasant.Worker, arg}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

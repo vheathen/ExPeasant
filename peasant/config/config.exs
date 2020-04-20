@@ -7,20 +7,13 @@
 # General application configuration
 use Mix.Config
 
-#
-config :peasant, Peasant.Tools,
-  types: [
-    Peasant.Tools.Sleeper,
-    Peasant.Tools.GenericRelay
-  ]
-
 # Configures the endpoint
 config :peasant, PeasantWeb.Endpoint,
   url: [host: "localhost"],
-  secret_key_base: "Lrk7/M41YlkWI31+pSjN8ZCerhMmN7Zn5M9+af+693aWiwzmzFM8PD9HR4xaXTBz",
-  render_errors: [view: PeasantWeb.ErrorView, accepts: ~w(html json)],
-  pubsub: [name: Nerves.PubSub, adapter: Phoenix.PubSub.PG2],
-  live_view: [signing_salt: "ngJKieFf"]
+  secret_key_base: "O4SRNqggemX1HjAIgllPp2N4RKLxERnJu1fk6LqmoDwp0uAfaBExJfFWUcQqRgZ2",
+  render_errors: [view: PeasantWeb.ErrorView, accepts: ~w(html json), layout: false],
+  pubsub_server: Peasant.PubSub,
+  live_view: [signing_salt: "w5BASwzz"]
 
 # Configures Elixir's Logger
 config :logger, :console,
