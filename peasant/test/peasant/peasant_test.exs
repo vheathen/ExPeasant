@@ -42,8 +42,13 @@ defmodule PeasantTest do
     end
   end
 
-  describe "build_topic/2" do
-    test "should build a topic in 'left:right' format" do
+  describe "build_topic" do
+    test "/2 should build a topic in 'left:right' format" do
+      assert "left:right" == Peasant.build_topic("left", "right")
+    end
+
+    test "/1 should build a topic in 'single' format" do
+      assert "single" == Peasant.build_topic("single")
     end
   end
 end
