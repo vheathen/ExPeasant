@@ -5,6 +5,10 @@ defmodule Peasant.Tool do
   - The Tool namespace
   """
 
+  @callback do_attach(tool :: %{uuid: Ecto.UUID}) :: :ok | {:error, term()}
+
+  @tool_handler_default Peasant.Tool.Handler
+
   defmacro __using__(_env) do
     quote do
       use Peasant.Tool.State
@@ -13,13 +17,12 @@ defmodule Peasant.Tool do
 
       @spec register(tool_spec :: map()) :: {:ok, Ecto.UUID} | {:error, term()}
       def register(tool_spec), do: unquote(__MODULE__).register(__MODULE__, tool_spec)
+      def attach(tool_uuid), do: unquote(__MODULE__).attach(tool_uuid)
 
       import unquote(__MODULE__)
       build_standard_events()
     end
   end
-
-  alias Peasant.Tool.Handler
 
   def register(tool_module, tool_spec) do
     {:error, [name: {"can't be blank", [validation: :required]}]}
@@ -29,10 +32,21 @@ defmodule Peasant.Tool do
         error
 
       tool ->
-        Handler.register(tool)
+        tool_handler().register(tool)
         {:ok, tool.uuid}
     end
   end
+
+  def attach(tool_uuid) do
+    tool_handler().attach(tool_uuid)
+    :ok
+  end
+
+  def tool_handler do
+    Application.get_env(:peasant, :tool_handler, @tool_handler_default)
+  end
+
+  ##### Macros
 
   defmacro build_standard_events do
     quote do

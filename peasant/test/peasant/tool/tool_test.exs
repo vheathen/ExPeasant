@@ -3,6 +3,20 @@ defmodule Peasant.ToolTest do
 
   alias Peasant.Tools.FakeTool
 
+  defmodule FakeHandler do
+    def register(tool), do: send(self(), {:register, tool})
+    def attach(tool_uuid), do: send(self(), {:attach, tool_uuid})
+  end
+
+  setup_all do
+    tool_handler = Application.get_env(:peasant, :tool_handler)
+    Application.put_env(:peasant, :tool_handler, FakeHandler)
+
+    on_exit(fn ->
+      Application.put_env(:peasant, :tool_handler, tool_handler)
+    end)
+  end
+
   setup do
     tool_spec = new_tool()
 
@@ -28,19 +42,30 @@ defmodule Peasant.ToolTest do
       assert {:ok, uuid} = FakeTool.register(tool_spec)
       assert is_binary(uuid)
       assert {:ok, _} = UUID.info(uuid)
+
+      assert_receive {:register, %FakeTool{uuid: ^uuid}}
     end
 
     test "should return {:error, error} in case of incorrect tool specs" do
       tool = new_tool() |> Map.delete(:name)
       assert {:error, _} = FakeTool.register(tool)
+
+      refute_receive {:register, %FakeTool{}}
     end
 
-    test "should introduce __Tool__.Registeted event struct", %{tool: tool} do
+    test "should introduce __Tool__.Registered event struct", %{tool: tool} do
       assert Code.ensure_compiled(FakeTool.Registered)
       assert %FakeTool.Registered{tool: ^tool} = FakeTool.Registered.new(tool)
     end
   end
 
   describe "attach(tool_uuid)" do
+    @describetag :unit
+
+    test "should run Handler.attach(tool_uuid)", %{tool: %{uuid: uuid}} do
+      assert :ok = FakeTool.attach(uuid)
+
+      assert_receive {:attach, ^uuid}
+    end
   end
 end
