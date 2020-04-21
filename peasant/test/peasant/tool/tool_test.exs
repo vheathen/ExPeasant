@@ -3,11 +3,6 @@ defmodule Peasant.ToolTest do
 
   alias Peasant.Tools.FakeTool
 
-  defmodule FakeHandler do
-    def register(tool), do: send(self(), {:register, tool})
-    def attach(tool_uuid), do: send(self(), {:attach, tool_uuid})
-  end
-
   setup_all do
     tool_handler = Application.get_env(:peasant, :tool_handler)
     Application.put_env(:peasant, :tool_handler, FakeHandler)
@@ -29,6 +24,36 @@ defmodule Peasant.ToolTest do
     @describetag :unit
 
     test "should intoduce State struct and functions", do: :ok
+
+    test "should have do_attach/1 callback" do
+      assert {:do_attach, 1} in Peasant.Tool.behaviour_info(:callbacks)
+    end
+  end
+
+  describe "Tool module events" do
+    @describetag :unit
+
+    test "should introduce __Tool__.Registered event struct", %{tool: tool} do
+      assert Code.ensure_compiled(FakeTool.Registered)
+      assert %FakeTool.Registered{tool: ^tool} = FakeTool.Registered.new(%{tool: tool})
+    end
+
+    test "should introduce __Tool__.Attached event struct", %{tool: tool} do
+      assert Code.ensure_compiled(FakeTool.Attached)
+      assert %FakeTool.Attached{tool: ^tool} = FakeTool.Attached.new(%{tool: tool})
+    end
+
+    test "should introduce __Tool__.AttachmentFailed event struct", %{tool: tool} do
+      assert Code.ensure_compiled(FakeTool.AttachmentFailed)
+
+      reason = Faker.Lorem.word()
+
+      assert %FakeTool.AttachmentFailed{tool_uuid: tool.uuid, reason: reason} ==
+               FakeTool.AttachmentFailed.new(%{tool_uuid: tool.uuid, reason: reason})
+
+      assert %FakeTool.AttachmentFailed{tool_uuid: tool.uuid, reason: reason} ==
+               FakeTool.AttachmentFailed.new(tool_uuid: tool.uuid, reason: reason)
+    end
   end
 
   describe "Registration and register/1" do
@@ -51,11 +76,6 @@ defmodule Peasant.ToolTest do
       assert {:error, _} = FakeTool.register(tool)
 
       refute_receive {:register, %FakeTool{}}
-    end
-
-    test "should introduce __Tool__.Registered event struct", %{tool: tool} do
-      assert Code.ensure_compiled(FakeTool.Registered)
-      assert %FakeTool.Registered{tool: ^tool} = FakeTool.Registered.new(tool)
     end
   end
 

@@ -44,6 +44,20 @@ defmodule Peasant.Tool.HandlerAPITest do
     end
   end
 
+  describe "attach/1" do
+    @describetag :unit
+
+    test "should cast :attach to a process with uuid as id", %{uuid: uuid} do
+      assert :ok == Handler.attach(uuid)
+      assert_receive {:cast, :attach}
+    end
+
+    test "should return {:error, :no_tool_exists} for a unknown uuid" do
+      assert {:error, :no_tool_exists} == Handler.attach(UUID.uuid4())
+      refute_receive {:cast, :attach}
+    end
+  end
+
   def fake_tool(_context) do
     tool = new_tool() |> FakeTool.new()
 

@@ -3,6 +3,16 @@ defmodule FakeHandler do
 
   import Peasant.Helper
 
+  def register(tool) do
+    send(self(), {:register, tool})
+    :ok
+  end
+
+  def attach(tool_uuid) do
+    send(self(), {:attach, tool_uuid})
+    :ok
+  end
+
   def start_link(%{uuid: uuid} = spec),
     do: GenServer.start_link(__MODULE__, spec, name: via_tuple(uuid))
 
