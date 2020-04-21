@@ -7,23 +7,19 @@ defmodule Peasant.Tool.State do
     quote do
       use Peasant.Schema
 
-      embedded_schema do
-        field(:name, :string)
-        field(:config, :map)
-        field(:placement, :string)
-        field(:attached, :boolean, default: false)
-      end
+      import unquote(__MODULE__)
 
-      @cast_fields ~w(
-        name
-        config
-        placement
-      )a
+      @fields [
+        [:name, :string, [required: true, cast: true]],
+        [:config, :map, [required: true, cast: true]],
+        [:placement, :string, [cast: true]],
+        [:attached, :boolean, [default: false]]
+      ]
 
-      @required_fields ~w(
-        name
-        config
-      )a
+      translate_to_schema(@fields)
+
+      @cast_fields cast_fields(@fields)
+      @required_fields required_fields(@fields)
 
       @impl true
       def changeset(state, params) do
@@ -31,6 +27,41 @@ defmodule Peasant.Tool.State do
         |> cast(params, @cast_fields)
         |> validate_required(@required_fields)
       end
+    end
+  end
+
+  defmacro translate_to_schema(fields) do
+    quote bind_quoted: [fields: fields] do
+      embedded_schema do
+        Enum.map(fields, fn
+          [name, type, opts] ->
+            field(name, type, opts)
+
+          [name, type] ->
+            field(name, type)
+        end)
+      end
+    end
+  end
+
+  def cast_fields(fields), do: filtered_field(fields, filter(:cast))
+
+  def required_fields(fields), do: filtered_field(fields, filter(:required))
+
+  def filtered_field(fields, filter_fun) do
+    Enum.reduce(fields, [], fn
+      [name | _tail] = record, acc ->
+        if filter_fun.(record), do: [name | acc], else: acc
+
+      _, acc ->
+        acc
+    end)
+  end
+
+  def filter(field) do
+    fn
+      [_, _, opts] -> Keyword.get(opts, field, false)
+      _ -> false
     end
   end
 end
