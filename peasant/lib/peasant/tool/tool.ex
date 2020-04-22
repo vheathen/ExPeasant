@@ -5,11 +5,48 @@ defmodule Peasant.Tool do
   - The Tool namespace
   """
 
-  @callback do_attach(tool :: %{:uuid => String.t(), optional(atom()) => term()}) ::
+  @type t :: %{:uuid => String.t(), optional(atom()) => term()}
+  @type event :: %{:action_ref => Ecto.UUID, optional(atom()) => term()}
+
+  @callback do_attach(tool :: t()) ::
               {:ok, struct()}
               | {:error, term()}
 
+  @callback do_action(action :: Peasant.Tool.Action.t(), tool :: t()) ::
+              :ok
+
   @tool_handler_default Peasant.Tool.Handler
+
+  @spec register(atom(), map()) ::
+          {:ok, Ecto.UUID}
+          | {:error, term()}
+  def register(tool_module, tool_spec) do
+    {:error, [name: {"can't be blank", [validation: :required]}]}
+
+    case tool_module.new(tool_spec) do
+      {:error, _error} = error ->
+        error
+
+      tool ->
+        tool_handler().register(tool)
+        {:ok, tool.uuid}
+    end
+  end
+
+  @spec attach(tool_uuid :: Ecto.UUID) ::
+          :ok
+          | {:error, :no_tool_exists}
+  def attach(tool_uuid) do
+    tool_handler().attach(tool_uuid)
+  end
+
+  @spec tool_handler ::
+          Peasant.Tool.Handler
+  def tool_handler do
+    Application.get_env(:peasant, :tool_handler, @tool_handler_default)
+  end
+
+  ##### Macros
 
   defmacro __using__(_env) do
     quote do
@@ -49,37 +86,6 @@ defmodule Peasant.Tool do
       build_standard_events()
     end
   end
-
-  @spec register(atom(), map()) ::
-          {:ok, Ecto.UUID}
-          | {:error, term()}
-  def register(tool_module, tool_spec) do
-    {:error, [name: {"can't be blank", [validation: :required]}]}
-
-    case tool_module.new(tool_spec) do
-      {:error, _error} = error ->
-        error
-
-      tool ->
-        tool_handler().register(tool)
-        {:ok, tool.uuid}
-    end
-  end
-
-  @spec attach(tool_uuid :: Ecto.UUID) ::
-          :ok
-          | {:error, :no_tool_exists}
-  def attach(tool_uuid) do
-    tool_handler().attach(tool_uuid)
-  end
-
-  @spec tool_handler ::
-          Peasant.Tool.Handler
-  def tool_handler do
-    Application.get_env(:peasant, :tool_handler, @tool_handler_default)
-  end
-
-  ##### Macros
 
   defmacro standard_events(events) do
     quote do
