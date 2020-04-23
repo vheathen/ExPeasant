@@ -8,6 +8,8 @@ defmodule Peasant.GeneralCase do
       import Peasant.Helper
       import Peasant.Factory
       import Peasant.Fixture
+
+      import Peasant.Tool.TestHelper
     end
   end
 end
