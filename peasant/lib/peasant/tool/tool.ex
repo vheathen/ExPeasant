@@ -5,15 +5,7 @@ defmodule Peasant.Tool do
   - The Tool namespace
   """
 
-  @type t :: %{:uuid => String.t(), optional(atom()) => term()}
-  @type event :: %{:action_ref => Ecto.UUID, optional(atom()) => term()}
-
-  @callback do_attach(tool :: t()) ::
-              {:ok, struct()}
-              | {:error, term()}
-
-  @callback do_action(action :: Peasant.Tool.Action.t(), tool :: t()) ::
-              :ok
+  @opaque t() :: Peasant.Tool.State.t()
 
   @tool_handler_default Peasant.Tool.Handler
 
@@ -33,74 +25,14 @@ defmodule Peasant.Tool do
     end
   end
 
-  @spec attach(tool_uuid :: Ecto.UUID) ::
+  @spec commit(tool_uuid :: Ecto.UUID, action :: Peasant.Tool.Action.t(), action_config :: map()) ::
           :ok
-          | {:error, :no_tool_exists}
-  def attach(tool_uuid) do
-    tool_handler().attach(tool_uuid)
-  end
+  def commit(tool_uuid, action, action_config \\ %{}),
+    do: tool_handler().commit(tool_uuid, action, action_config)
 
-  @spec tool_handler ::
-          Peasant.Tool.Handler
+  @spec tool_handler :: Peasant.Tool.Handler
+  @doc false
   def tool_handler do
     Application.get_env(:peasant, :tool_handler, @tool_handler_default)
-  end
-
-  ##### Macros
-
-  defmacro __using__(_env) do
-    quote do
-      use Peasant.Tool.State
-
-      require Logger
-
-      @behaviour unquote(__MODULE__)
-
-      @spec register(tool_spec :: map()) :: {:ok, Ecto.UUID} | {:error, term()}
-      def register(tool_spec), do: unquote(__MODULE__).register(__MODULE__, tool_spec)
-      def attach(tool_uuid), do: unquote(__MODULE__).attach(tool_uuid)
-
-      def do_attach(tool) do
-        # raise(FunctionClauseError,
-        #   message: "#{__MODULE__} must have implemented do_attach/1 callback"
-        # )
-
-        Logger.warn(
-          "#{__MODULE__} doesn't have do_attach/1 callback implementation, just passing by"
-        )
-
-        {:ok, tool}
-      end
-
-      defoverridable do_attach: 1
-
-      import unquote(__MODULE__)
-      require unquote(__MODULE__)
-
-      standard_events([
-        {Registered, [:tool]},
-        {Attached, [:tool]},
-        {AttachmentFailed, [:tool_uuid, :reason]}
-      ])
-
-      build_standard_events()
-    end
-  end
-
-  defmacro standard_events(events) do
-    quote do
-      @standard_events unquote(events)
-    end
-  end
-
-  defmacro build_standard_events() do
-    quote do
-      Enum.map(@standard_events, fn {event, fields} ->
-        defmodule Module.concat(__MODULE__, event) do
-          defstruct fields
-          def new(attrs), do: struct(__MODULE__, attrs)
-        end
-      end)
-    end
   end
 end
