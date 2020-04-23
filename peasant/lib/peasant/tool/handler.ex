@@ -33,8 +33,8 @@ defmodule Peasant.Tool.Handler do
     {:ok, tool, {:continue, :registered}}
   end
 
-  def handle_continue(:registered, %{} = tool) do
-    event = Peasant.Tool.Event.Registered.new(tool_uuid: tool.uuid)
+  def handle_continue(:registered, %_{} = tool) do
+    event = Peasant.Tool.Event.Registered.new(tool_uuid: tool.uuid, details: %{tool: tool})
     notify(event)
 
     {:noreply, tool}

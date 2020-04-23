@@ -93,7 +93,7 @@ defmodule Peasant.Tool.HandlerImplementationTest do
   end
 
   def register_tool(%{tool: tool}) do
-    registered = Peasant.Tool.Event.Registered.new(tool_uuid: tool.uuid)
+    registered = Peasant.Tool.Event.Registered.new(tool_uuid: tool.uuid, details: %{tool: tool})
     assert {:ok, _} = Handler.register(tool)
 
     [tool_registered: registered]
