@@ -40,6 +40,8 @@ defmodule Peasant.Tool.State do
           [name, type] ->
             field(name, type)
         end)
+
+        timestamps()
       end
     end
   end

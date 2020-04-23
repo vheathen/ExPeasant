@@ -45,6 +45,11 @@ defmodule Peasant.Tool.StateTest do
       assert Map.has_key?(state, :attached)
       assert state.attached == false
     end
+
+    test "should have timestamps", %{state: state} do
+      assert Map.has_key?(state, :inserted_at)
+      assert Map.has_key?(state, :updated_at)
+    end
   end
 
   defp check_recursive(left, right) do
