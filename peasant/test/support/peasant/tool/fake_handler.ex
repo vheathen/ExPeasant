@@ -8,8 +8,8 @@ defmodule FakeHandler do
     :ok
   end
 
-  def attach(tool_uuid) do
-    send(self(), {:attach, tool_uuid})
+  def commit(tool_uuid, action, action_config) do
+    send(self(), {:commit, tool_uuid, action, action_config})
     :ok
   end
 

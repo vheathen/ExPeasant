@@ -44,17 +44,27 @@ defmodule Peasant.Tool.HandlerAPITest do
     end
   end
 
-  describe "attach/1" do
+  describe "commit/3" do
     @describetag :unit
 
-    test "should cast :attach to a process with uuid as id", %{uuid: uuid} do
-      assert :ok == Handler.attach(uuid)
-      assert_receive {:cast, :attach}
+    test "should cast {:commit, action, config} to a process with uuid as id", %{uuid: uuid} do
+      config = %{some: "value"}
+      assert :ok == Handler.commit(uuid, Peasant.Tool.Action.Attach, config)
+      assert_receive {:cast, {:commit, Peasant.Tool.Action.Attach, ^config}}
     end
 
     test "should return {:error, :no_tool_exists} for a unknown uuid" do
-      assert {:error, :no_tool_exists} == Handler.attach(UUID.uuid4())
-      refute_receive {:cast, :attach}
+      config = %{some: "value"}
+
+      assert {:error, :no_tool_exists} ==
+               Handler.commit(
+                 UUID.uuid4(),
+                 Peasant.Tool.Action.Attach.Peasant.Tools.FakeTool,
+                 config
+               )
+
+      refute_receive {:cast,
+                      {:commit, Peasant.Tool.Action.Attach.Peasant.Tools.FakeTool, ^config}}
     end
   end
 

@@ -4,6 +4,8 @@ defmodule Peasant.Tool.HandlerImplementationTest do
   alias Peasant.Tool.Handler
 
   alias Peasant.Tools.FakeTool
+  alias Peasant.Tool.Action
+  alias Peasant.Tool.Event
 
   setup do
     Peasant.subscribe("tools")
@@ -14,7 +16,7 @@ defmodule Peasant.Tool.HandlerImplementationTest do
     [tool: make_tool(context)]
   end
 
-  describe "registeration process" do
+  describe "registration process" do
     @describetag :integration
 
     setup :register_tool
@@ -24,45 +26,57 @@ defmodule Peasant.Tool.HandlerImplementationTest do
     end
   end
 
-  describe "attachment process" do
-    @describetag :integration
+  describe "commit action process" do
+    @describetag :unit
 
-    setup [:register_tool, :attach_tool]
+    test "should fire %ActionFailed{details: %{error: :tool_must_be_attached}} event if a tool isn't attached",
+         %{tool: tool} do
+      action = Action.FakeAction
+      action_ref = UUID.uuid4()
 
-    test "should do nothing if tool has been already attached",
-         %{
-           tool_registered: %{tool: tool},
-           attached_event: %{tool: attached_tool} = attached_event
-         } do
-      assert {:noreply, attached_tool} == Handler.handle_cast(:attach, attached_tool)
+      action_failed_event =
+        Event.ActionFailed.new(
+          tool_uuid: tool.uuid,
+          action_ref: action_ref,
+          details: %{error: :tool_must_be_attached}
+        )
 
-      refute_receive {:do_attach, ^tool}
-      refute_receive ^attached_event
+      assert {:noreply, tool} == Handler.handle_cast({:commit, action, action_ref}, tool)
+      assert_receive ^action_failed_event
     end
 
-    test "should call do_attach/1 callback, change :attached to true and broadcast event if tool has not been attached before",
-         %{
-           tool_registered: %{tool: tool},
-           attached_event: %{tool: attached_tool} = attached_event
-         } do
-      assert {:noreply, attached_tool} == Handler.handle_cast(:attach, tool)
+    test "should fire returned from action implementation events and put a new tool structure into the state",
+         %{tool: %{config: config} = tool} do
+      to_change = Faker.Lorem.word()
 
-      assert_receive {:do_attach, ^tool}
-      assert_receive ^attached_event
+      action = Action.FakeAction
+      action_ref = UUID.uuid4()
+      config = Map.put(config, :to_change, to_change)
+
+      tool = %{tool | config: config, attached: true}
+
+      assert {:ok, new_tool, [event]} = Action.FakeAction.run(tool, action_ref)
+
+      assert {:noreply, ^new_tool} = Handler.handle_cast({:commit, action, action_ref}, tool)
+
+      assert_receive ^event
     end
 
-    @tag tool_error: Faker.Lorem.word()
-    test "should call do_attach/1 callback and if it returns error change nothing, but send AttachmentFailed event",
-         %{
-           tool_registered: %{tool: tool},
-           tool_error: error
-         } do
-      attachment_failed_event = FakeTool.AttachmentFailed.new(tool_uuid: tool.uuid, reason: error)
+    test "should fire returned from action implementation events and put a new tool structure into the state 2",
+         %{tool: %{config: config} = tool} do
+      error = Faker.Lorem.sentence()
 
-      assert {:noreply, tool} == Handler.handle_cast(:attach, tool)
+      action = Action.FakeAction
+      action_ref = UUID.uuid4()
+      config = Map.put(config, :error, error)
 
-      assert_receive {:do_attach, ^tool}
-      assert_receive ^attachment_failed_event
+      tool = %{tool | config: config, attached: true}
+
+      assert {:ok, ^tool, [event]} = Action.FakeAction.run(tool, action_ref)
+
+      assert {:noreply, ^tool} = Handler.handle_cast({:commit, action, action_ref}, tool)
+
+      assert_receive ^event
     end
   end
 
@@ -79,15 +93,15 @@ defmodule Peasant.Tool.HandlerImplementationTest do
   end
 
   def register_tool(%{tool: tool}) do
-    registered = FakeTool.Registered.new(%{tool: tool})
-
+    registered = Peasant.Tool.Event.Registered.new(tool_uuid: tool.uuid)
     assert {:ok, _} = Handler.register(tool)
 
     [tool_registered: registered]
   end
 
-  def attach_tool(%{tool_registered: %{tool: tool}}) do
-    attached_event = FakeTool.Attached.new(tool: %{tool | attached: true})
-    [attached_event: attached_event]
-  end
+  # def commit_action(%{tool_registered: %{tool: tool}}) do
+
+  #   attached_event = FakeTool.Attached.new(tool: %{tool | attached: true})
+  #   [attached_event: attached_event]
+  # end
 end
