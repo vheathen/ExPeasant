@@ -18,6 +18,12 @@ defmodule Peasant.Application do
       # Toolbox dynamic supervisor
       Peasant.Toolbox,
 
+      # Storage Repo
+      Peasant.Repo,
+
+      # Storage Observer
+      Peasant.Storage.Observer,
+
       # Start the Endpoint (http/https)
       PeasantWeb.Endpoint
       # Start a worker by calling: Peasant.Worker.start_link(arg)
