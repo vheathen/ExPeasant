@@ -31,6 +31,11 @@ defmodule Peasant.Repo do
     end
   end
 
+  def get_all do
+    {:ok, records} = CubDB.select(db())
+    records
+  end
+
   def delete(id) do
     db = db()
 
