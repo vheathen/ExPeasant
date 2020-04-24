@@ -1,4 +1,4 @@
-defmodule Peasant.Tool.TestHelper do
+defmodule Peasant.TestHelper do
   @doc """
   Testing
   """
@@ -55,7 +55,8 @@ defmodule Peasant.Tool.TestHelper do
         check_recursive(v, sub)
 
       {k, v} ->
-        assert Map.get(right, k) == v
+        assert Map.get(right, k) == v,
+          message: "Map\n\n#{inspect(right)}\n\nhas different value for the key #{inspect(k)}"
     end)
   end
 end

@@ -9,7 +9,7 @@ defmodule Peasant.GeneralCase do
       import Peasant.Factory
       import Peasant.Fixture
 
-      import Peasant.Tool.TestHelper
+      import Peasant.TestHelper
     end
   end
 end
