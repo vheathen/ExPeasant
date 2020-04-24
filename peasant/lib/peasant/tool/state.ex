@@ -13,7 +13,8 @@ defmodule Peasant.Tool.State do
         [:name, :string, [required: true, cast: true]],
         [:config, :map, [required: true, cast: true]],
         [:placement, :string, [cast: true]],
-        [:attached, :boolean, [default: false]]
+        [:attached, :boolean, [default: false]],
+        [:new, :boolean, [default: true]]
       ]
 
       translate_to_schema(@fields)
