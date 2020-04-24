@@ -9,6 +9,51 @@
 
 ### Unsorted
 
+### Automation
+
+#### State
+- [X] Done
+uuid
+name
+description
+steps
+total_steps
+current_step
+current_step_started_at
+active
+new
+timer
+
+###### Steps
+- [X] Done
+uuid
+name
+description
+tool_uuid
+action -> validate_action
+action_config -> cast action_config via action struct
+wait_for_events
+active
+suspended_by_tool
+
+
+
+#### Methods
+- [ ] create -> Created
+- [ ] delete -> Deleted
+- [ ] rename -> Renamed
+- [ ] change_description -> DescriptionChanged
+- [ ] activate -> Activated
+- [ ] deactivate -> Deactivated
+
+- [ ] add_step_at -> StepAddedAt
+- [ ] delete_step -> StepDeletedAt
+- [ ] move_step_to -> StepMovedTo
+- [ ] rename_step -> StepRenamed
+- [ ] change_step_description -> StepDescriptionChanged
+- [ ] activate_step -> StepActivated
+- [ ] deactivate_step -> StepDeactivated
+
 #### A new tool attach
 `attach(attrs)` ->
 formal check with `record = new(attrs)` ->
@@ -32,6 +77,13 @@ if `%{valid?: true} = changeset` then `Toolbox.attach_tool(changeset)`
 
 ##### Action
 - A tool action struct
+
+Describe Actions via macros in Tool.Action module by `use/2` service `Tool.Action.Protocol` module and macro `action/2`:
+```
+action name, 
+  config: [{field_name, field_type, [required: true | false, default: "", label: "", description: "", hint: ""]}],
+  resulting_events: [Event1, Event2]
+```
 
 ##### Event
 - A tool event struct
