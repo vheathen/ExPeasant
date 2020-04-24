@@ -7,14 +7,16 @@ defmodule Peasant.DataCase do
 
       setup do
         on_exit(fn ->
+          Peasant.Storage.Observer.clear()
           Application.stop(:peasant)
 
           case Application.get_env(:peasant, :peasantdb) do
-            nil -> true
-            db -> File.rm(db)
+            nil -> :ok
+            db -> File.rm_rf(db)
           end
 
           Application.ensure_all_started(:peasant)
+          Peasant.Storage.Observer.clear()
         end)
 
         :ok
