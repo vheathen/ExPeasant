@@ -56,19 +56,4 @@ defmodule Peasant.Tool.StateTest do
       assert Map.has_key?(state, :updated_at)
     end
   end
-
-  defp check_recursive(left, right) do
-    Enum.each(left, fn
-      {k, v} when is_map(v) ->
-        sub = Map.get(right, k)
-
-        refute is_nil(sub),
-          message: "Map '#{inspect(right)}' doen't have a required key '#{inspect(k)}'"
-
-        check_recursive(v, sub)
-
-      {k, v} ->
-        assert Map.get(right, k) == v
-    end)
-  end
 end
