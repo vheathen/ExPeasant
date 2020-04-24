@@ -5,7 +5,7 @@ defmodule Peasant.Tool.Handler do
 
   import Peasant.Helper
 
-  alias Peasant.Tool.Event
+  alias Peasant.Tool.Action.Attach
 
   @domain "tools"
 
@@ -20,17 +20,22 @@ defmodule Peasant.Tool.Handler do
     do: __MODULE__ |> handler_child_spec(tool) |> Peasant.Toolbox.add()
 
   def commit(tool_uuid, action, action_config) do
-    case Registry.lookup(Peasant.Registry, tool_uuid) do
-      [] -> {:error, :no_tool_exists}
-      [{pid, _}] -> GenServer.cast(pid, {:commit, action, action_config})
+    try do
+      GenServer.call(via_tuple(tool_uuid), {:commit, action, action_config})
+    catch
+      :exit, {:noproc, _} -> {:error, :no_tool_exists}
     end
   end
 
   ####
   # Implementation
 
-  def init(tool) do
-    {:ok, tool, {:continue, :registered}}
+  def init(%{new: true} = tool) do
+    {:ok, %{tool | new: false}, {:continue, :registered}}
+  end
+
+  def init(%{new: false} = tool) do
+    {:ok, tool, {:continue, :loaded}}
   end
 
   def handle_continue(:registered, %_{} = tool) do
@@ -40,27 +45,46 @@ defmodule Peasant.Tool.Handler do
     {:noreply, tool}
   end
 
-  def handle_cast({:commit, _action, action_ref}, %{attached: false} = tool) do
-    event =
-      Event.ActionFailed.new(
-        tool_uuid: tool.uuid,
-        action_ref: action_ref,
-        details: %{error: :tool_must_be_attached}
-      )
-
+  def handle_continue(:loaded, %_{} = tool) do
+    event = Peasant.Tool.Event.Loaded.new(tool_uuid: tool.uuid, details: %{tool: tool})
     notify(event)
 
     {:noreply, tool}
   end
 
-  def handle_cast({:commit, action, action_ref}, tool) do
-    {:ok, tool, events} = action.run(tool, action_ref)
+  def handle_continue({:commit, action, action_config, action_ref}, tool) do
+    {:ok, tool, events} =
+      case action.template(tool) do
+        nil -> action.run(tool, action_ref)
+        t when t == %{} -> action.run(tool, action_ref)
+        _ -> action.run(tool, action_ref, action_config)
+      end
 
     notify(events)
 
     {:noreply, tool}
   end
 
+  def handle_call({:commit, action, action_config}, _from, %type{attached: attached} = tool)
+      when attached == true or
+             (attached == false and action == Attach) do
+    case action.impl_for(tool) do
+      nil ->
+        {:reply, {:error, [{type, :action_not_supported}]}, tool}
+
+      _ ->
+        action_ref = action_ref()
+
+        {:reply, {:ok, action_ref}, tool,
+         {:continue, {:commit, action, action_config, action_ref}}}
+    end
+  end
+
+  def handle_call({:commit, _action, _action_config}, _from, %{attached: false} = tool),
+    do: {:reply, {:error, :not_attached}, tool}
+
   defp notify(events) when is_list(events), do: Enum.each(events, &notify/1)
   defp notify(event), do: Peasant.broadcast(@domain, event)
+
+  defp action_ref, do: UUID.uuid4()
 end

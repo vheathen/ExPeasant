@@ -49,8 +49,9 @@ defmodule Peasant.Tool.HandlerAPITest do
 
     test "should cast {:commit, action, config} to a process with uuid as id", %{uuid: uuid} do
       config = %{some: "value"}
-      assert :ok == Handler.commit(uuid, Peasant.Tool.Action.Attach, config)
-      assert_receive {:cast, {:commit, Peasant.Tool.Action.Attach, ^config}}
+
+      assert {:call, {:commit, Peasant.Tool.Action.Attach, ^config}} =
+               Handler.commit(uuid, Peasant.Tool.Action.Attach, config)
     end
 
     test "should return {:error, :no_tool_exists} for a unknown uuid" do
@@ -59,14 +60,25 @@ defmodule Peasant.Tool.HandlerAPITest do
       assert {:error, :no_tool_exists} ==
                Handler.commit(
                  UUID.uuid4(),
-                 Peasant.Tool.Action.Attach.Peasant.Tools.FakeTool,
+                 Peasant.Tool.Action.Attach,
                  config
                )
-
-      refute_receive {:cast,
-                      {:commit, Peasant.Tool.Action.Attach.Peasant.Tools.FakeTool, ^config}}
     end
   end
+
+  #
+  # Do we actually need an another API method if action described by a record state?
+  #
+  # describe "load/1" do
+  #   @describetag :unit
+
+  #   setup :fake_tool
+
+  #   test "should cast {:load, tool} to a process with uuid as id", %{fake_tool: tool} do
+  #     assert :ok == Handler.load(tool)
+  #     assert_receive {:cast, {:load, ^tool}}
+  #   end
+  # end
 
   def fake_tool(_context) do
     tool = new_tool() |> FakeTool.new()
