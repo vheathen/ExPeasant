@@ -77,21 +77,21 @@ defmodule Peasant.ToolTest do
     @describetag :unit
 
     test "should run Handler.commit(tool_uuid, action)", %{tool: %{uuid: uuid}} do
-      assert :ok = Peasant.Tool.commit(uuid, Peasant.Tool.Action.Attach.Peasant.Tools.FakeTool)
-      assert_receive {:commit, ^uuid, Peasant.Tool.Action.Attach.Peasant.Tools.FakeTool, %{}}
+      assert {:ok, _ref} = Peasant.Tool.commit(uuid, Peasant.Tool.Action.Attach)
+      assert_receive {:commit, ^uuid, Peasant.Tool.Action.Attach, %{}}
     end
 
     test "should run Handler.commit(tool_uuid, action, config)", %{tool: %{uuid: uuid}} do
       config = %{key: "value"}
 
-      assert :ok =
+      assert {:ok, _ref} =
                Peasant.Tool.commit(
                  uuid,
-                 Peasant.Tool.Action.Attach.Peasant.Tools.FakeTool,
+                 Peasant.Tool.Action.Attach,
                  config
                )
 
-      assert_receive {:commit, ^uuid, Peasant.Tool.Action.Attach.Peasant.Tools.FakeTool, ^config}
+      assert_receive {:commit, ^uuid, Peasant.Tool.Action.Attach, ^config}
     end
   end
 end

@@ -10,7 +10,7 @@ defmodule FakeHandler do
 
   def commit(tool_uuid, action, action_config) do
     send(self(), {:commit, tool_uuid, action, action_config})
-    :ok
+    {:ok, UUID.uuid4()}
   end
 
   def start_link(%{uuid: uuid} = spec),
