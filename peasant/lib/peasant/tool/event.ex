@@ -1,6 +1,4 @@
 defmodule Peasant.Tool.Event do
-  alias Peasant.Tool.Action
-
   @type t() :: struct()
 
   defmacro __using__(_) do
