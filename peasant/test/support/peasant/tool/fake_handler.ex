@@ -1,4 +1,4 @@
-defmodule FakeHandler do
+defmodule Peasant.Tool.FakeHandler do
   use GenServer
 
   import Peasant.Helper

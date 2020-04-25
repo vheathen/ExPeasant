@@ -13,8 +13,6 @@ defmodule Peasant.Tool do
           {:ok, Ecto.UUID}
           | {:error, term()}
   def register(tool_module, tool_spec) do
-    {:error, [name: {"can't be blank", [validation: :required]}]}
-
     case tool_module.new(tool_spec) do
       {:error, _error} = error ->
         error

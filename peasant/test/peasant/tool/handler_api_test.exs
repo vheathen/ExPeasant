@@ -10,7 +10,7 @@ defmodule Peasant.Tool.HandlerAPITest do
 
     spec = %{uuid: uuid, test_pid: self()}
 
-    start_supervised(FakeHandler, handler_child_spec(FakeHandler, spec))
+    start_supervised(Peasant.Tool.FakeHandler, handler_child_spec(Peasant.Tool.FakeHandler, spec))
 
     [uuid: uuid]
   end

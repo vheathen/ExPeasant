@@ -7,7 +7,7 @@ defmodule Peasant.ToolTest do
 
   setup_all do
     tool_handler = Application.get_env(:peasant, :tool_handler)
-    Application.put_env(:peasant, :tool_handler, FakeHandler)
+    Application.put_env(:peasant, :tool_handler, Tool.FakeHandler)
 
     on_exit(fn ->
       Application.put_env(:peasant, :tool_handler, tool_handler)
