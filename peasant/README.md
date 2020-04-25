@@ -40,7 +40,7 @@ suspended_by_tool
 #### Methods
 - [X] create -> Created
 - [ ] delete -> Deleted
-- [ ] rename -> Renamed
+- [X] rename -> Renamed
 - [ ] change_description -> DescriptionChanged
 - [ ] activate -> Activated
 - [ ] deactivate -> Deactivated

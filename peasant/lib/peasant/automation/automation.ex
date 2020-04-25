@@ -9,7 +9,7 @@ defmodule Peasant.Automation do
 
   @automation_handler_default Peasant.Automation.Handler
 
-  @spec create(map()) ::
+  @spec create(automation_spec :: map()) ::
           {:ok, Ecto.UUID}
           | {:error, term()}
   def create(automation_spec) do
@@ -22,6 +22,14 @@ defmodule Peasant.Automation do
         {:ok, automation.uuid}
     end
   end
+
+  # @spec delete(automation_uuid :: Ecto.UUID) :: :ok
+  # def delete(automation_uuid),
+  #   do: automation_handler().delete(automation_uuid)
+
+  @spec rename(automation_uuid :: Ecto.UUID, new_name :: String.t()) :: :ok
+  def rename(automation_uuid, new_name),
+    do: automation_handler().rename(automation_uuid, new_name)
 
   @spec automation_handler :: Peasant.Automation.Handler | atom()
   @doc false

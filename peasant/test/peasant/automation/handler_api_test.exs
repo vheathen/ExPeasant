@@ -45,6 +45,24 @@ defmodule Peasant.Automation.HandlerAPITest do
     end
   end
 
+  describe "rename/2" do
+    @describetag :unit
+
+    test "should cast {:rename, new_name} to a process with uuid as id", %{uuid: uuid} do
+      new_name = Faker.Lorem.word()
+
+      assert {:call, {:rename, new_name}} ==
+               Handler.rename(uuid, new_name)
+    end
+
+    test "should return {:error, :no_automation_exists} for an unknown uuid" do
+      new_name = Faker.Lorem.word()
+
+      assert {:error, :no_automation_exists} ==
+               Handler.rename(UUID.uuid4(), new_name)
+    end
+  end
+
   def automation_setup(_context) do
     automation = new_automation() |> State.new()
 

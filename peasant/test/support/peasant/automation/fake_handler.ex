@@ -8,10 +8,15 @@ defmodule Peasant.Automation.FakeHandler do
     :ok
   end
 
-  # def commit(tool_uuid, action, action_config) do
-  #   send(self(), {:commit, tool_uuid, action, action_config})
-  #   {:ok, UUID.uuid4()}
-  # end
+  def delete(automation_uuid) do
+    send(self(), {:delete, automation_uuid})
+    :ok
+  end
+
+  def rename(automation_uuid, new_name) do
+    send(self(), {:rename, automation_uuid, new_name})
+    :ok
+  end
 
   def start_link(%{uuid: uuid} = spec),
     do: GenServer.start_link(__MODULE__, spec, name: via_tuple(uuid))

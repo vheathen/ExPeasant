@@ -49,25 +49,21 @@ defmodule Peasant.AutomationTest do
     end
   end
 
-  # describe "commit(automation_uuid, action, action_config \\ %{})" do
+  # describe "delete(automation_uuid)" do
   #   @describetag :unit
 
-  #   test "should run Handler.commit(automation_uuid, action)", %{automation: %{uuid: uuid}} do
-  #     assert {:ok, _ref} = Peasant.Automation.commit(uuid, Peasant.Automation.Action.Attach)
-  #     assert_receive {:commit, ^uuid, Peasant.Automation.Action.Attach, %{}}
-  #   end
-
-  #   test "should run Handler.commit(automation_uuid, action, config)", %{automation: %{uuid: uuid}} do
-  #     config = %{key: "value"}
-
-  #     assert {:ok, _ref} =
-  #              Peasant.Automation.commit(
-  #                uuid,
-  #                Peasant.Automation.Action.Attach,
-  #                config
-  #              )
-
-  #     assert_receive {:commit, ^uuid, Peasant.Automation.Action.Attach, ^config}
+  #   test "should run Handler.delete(automation_uuid)", %{automation: %{uuid: uuid}} do
+  #     assert :ok = Automation.delete(uuid)
+  #     assert_receive {:delete, ^uuid}
   #   end
   # end
+
+  describe "rename/2" do
+    @describetag :unit
+    test "should run Handler.rename(uuid, new_name)", %{automation: %{uuid: uuid}} do
+      new_name = Faker.Lorem.word()
+      assert :ok = Automation.rename(uuid, new_name)
+      assert_receive {:rename, ^uuid, ^new_name}
+    end
+  end
 end
