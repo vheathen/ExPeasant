@@ -3,17 +3,12 @@ defmodule Peasant.Automation.Event do
 
   defmacro __using__(_) do
     quote do
-      alias unquote(__MODULE__)
-      alias Peasant.Automation.Action
+      use Peasant.Event
 
-      defstruct [:action_ref, :automation_uuid, :details]
-
-      @spec new(params :: map() | keyword()) ::
-              Event.t()
-
-      def new(params), do: struct(__MODULE__, params)
-
-      defoverridable(new: 1)
+      event_fields([
+        :automation_uuid,
+        :action_ref
+      ])
     end
   end
 end
