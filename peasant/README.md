@@ -30,16 +30,15 @@ uuid
 name
 description
 tool_uuid
-action -> validate_action
+- [X] action -> validate_action
 action_config -> cast action_config via action struct
 wait_for_events
 active
 suspended_by_tool
 
 
-
 #### Methods
-- [ ] create -> Created
+- [X] create -> Created
 - [ ] delete -> Deleted
 - [ ] rename -> Renamed
 - [ ] change_description -> DescriptionChanged
@@ -53,6 +52,10 @@ suspended_by_tool
 - [ ] change_step_description -> StepDescriptionChanged
 - [ ] activate_step -> StepActivated
 - [ ] deactivate_step -> StepDeactivated
+
+#### Handler
+
+#### ActivityMaster: DynamicSupervisor for Automations
 
 #### A new tool attach
 `attach(attrs)` ->
