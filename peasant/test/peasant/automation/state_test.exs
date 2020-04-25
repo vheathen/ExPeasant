@@ -8,7 +8,7 @@ defmodule Peasant.Automation.StateTest do
   ]
 
   setup do
-    state_params = new_auto()
+    state_params = new_automation()
 
     state = State.new(state_params)
     assert %State{uuid: _} = state
