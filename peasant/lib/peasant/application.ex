@@ -18,6 +18,9 @@ defmodule Peasant.Application do
       # Toolbox dynamic supervisor
       Peasant.Toolbox,
 
+      # ActivityMaster: automations supervisor
+      Peasant.ActivityMaster,
+
       # Storage Repo
       Peasant.Repo,
 
