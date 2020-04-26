@@ -4,6 +4,7 @@ defmodule Peasant.AutomationTest do
   alias Peasant.Automation
 
   alias Peasant.Automation.State
+  alias Peasant.Automation.State.Step
 
   setup_all do
     automation_handler = Application.get_env(:peasant, :automation_handler)
@@ -64,6 +65,45 @@ defmodule Peasant.AutomationTest do
       new_name = Faker.Lorem.word()
       assert :ok = Automation.rename(uuid, new_name)
       assert_receive {:rename, ^uuid, ^new_name}
+    end
+  end
+
+  describe "add_step_at/3" do
+    @describetag :unit
+    test "should run Handler.add_step_at(uuid, step, position) if options are correct", %{
+      automation: %{uuid: uuid}
+    } do
+      step_spec = new_step()
+      step = step_spec |> Step.new()
+      position = :first
+
+      assert :ok = Automation.add_step_at(uuid, step_spec, position)
+      assert_receive {:add_step_at, ^uuid, step_gotten, ^position}
+      assert Map.delete(step_gotten, :uuid) == Map.delete(step, :uuid)
+    end
+
+    test "should return {:error, term()} if step specs are incorrect", %{
+      automation: %{uuid: uuid}
+    } do
+      step_spec = new_step() |> Map.delete(:name)
+      position = :last
+
+      assert {:error, [name: {"can't be blank", [validation: :required]}]} =
+               Automation.add_step_at(uuid, step_spec, position)
+
+      refute_receive {:add_step_at, ^uuid, _, ^position}
+    end
+
+    test "should return {:error, :incorrect_position} if position are incorrect", %{
+      automation: %{uuid: uuid}
+    } do
+      [:atom, Faker.random_between(-10000, 0), 0]
+      |> Enum.each(fn position ->
+        step_spec = new_step()
+
+        assert {:error, :incorrect_position} = Automation.add_step_at(uuid, step_spec, position)
+        refute_receive {:add_step_at, ^uuid, _, ^position}
+      end)
     end
   end
 end

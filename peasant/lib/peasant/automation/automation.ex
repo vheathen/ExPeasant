@@ -4,6 +4,7 @@ defmodule Peasant.Automation do
   """
 
   alias Peasant.Automation.State
+  alias Peasant.Automation.State.Step
 
   @opaque t() :: State.t()
 
@@ -30,6 +31,23 @@ defmodule Peasant.Automation do
   @spec rename(automation_uuid :: Ecto.UUID, new_name :: String.t()) :: :ok
   def rename(automation_uuid, new_name),
     do: automation_handler().rename(automation_uuid, new_name)
+
+  @spec add_step_at(
+          automation_uuid :: Ecto.UUID,
+          step_spec :: map(),
+          position :: :first | :last | non_neg_integer()
+        ) ::
+          :ok
+          | {:error, term()}
+  def add_step_at(automation_uuid, step_spec, position)
+      when position in [:first, :last] or (is_integer(position) and position > 0) do
+    case Step.new(step_spec) do
+      {:error, _error} = error -> error
+      step -> automation_handler().add_step_at(automation_uuid, step, position)
+    end
+  end
+
+  def add_step_at(_automation_uuid, _step_spec, _position), do: {:error, :incorrect_position}
 
   @spec automation_handler :: Peasant.Automation.Handler | atom()
   @doc false

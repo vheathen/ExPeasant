@@ -37,6 +37,11 @@ defmodule Peasant.Automation.StateTest do
       end)
     end
 
+    test "should have :steps field", %{state: state} do
+      assert Map.has_key?(state, :steps)
+      assert state.steps == []
+    end
+
     test "should have :active field", %{state: state} do
       assert Map.has_key?(state, :active)
       assert state.active == false

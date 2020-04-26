@@ -4,6 +4,7 @@ defmodule Peasant.Automation.State do
   embedded_schema do
     field(:name, :string)
     field(:description, :string)
+    field(:steps, {:array, :map}, default: [])
     field(:active, :boolean, default: false)
     field(:new, :boolean, default: true, virtual: true)
 

@@ -2,6 +2,7 @@ defmodule Peasant.Automation.HandlerAPITest do
   use Peasant.DataCase
 
   alias Peasant.Automation.State
+  alias Peasant.Automation.State.Step
   alias Peasant.Automation.Handler
 
   setup do
@@ -57,9 +58,31 @@ defmodule Peasant.Automation.HandlerAPITest do
 
     test "should return {:error, :no_automation_exists} for an unknown uuid" do
       new_name = Faker.Lorem.word()
+      uuid = UUID.uuid4()
 
       assert {:error, :no_automation_exists} ==
-               Handler.rename(UUID.uuid4(), new_name)
+               Handler.rename(uuid, new_name)
+    end
+  end
+
+  describe "add_step_at/3" do
+    @describetag :unit
+
+    test "should cast {:add_step_at, step, position} to a process with uuid as id", %{uuid: uuid} do
+      step = new_step() |> Step.new()
+      position = :first
+
+      assert {:call, {:add_step_at, step, position}} ==
+               Handler.add_step_at(uuid, step, position)
+    end
+
+    test "should return {:error, :no_automation_exists} for an unknown uuid" do
+      step = new_step() |> Step.new()
+      position = :first
+      uuid = UUID.uuid4()
+
+      assert {:error, :no_automation_exists} ==
+               Handler.add_step_at(uuid, step, position)
     end
   end
 
