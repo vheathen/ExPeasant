@@ -28,6 +28,8 @@ defmodule Peasant.Tool.State do
         |> cast(params, @cast_fields)
         |> validate_required(@required_fields)
       end
+
+      defoverridable(changeset: 2)
     end
   end
 
