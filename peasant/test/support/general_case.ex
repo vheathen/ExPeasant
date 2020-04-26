@@ -10,6 +10,14 @@ defmodule Peasant.GeneralCase do
       import Peasant.Fixture
 
       import Peasant.TestHelper
+
+      setup do
+        config = Application.get_all_env(:peasant)
+
+        on_exit(fn ->
+          Application.put_all_env([{:peasant, config}])
+        end)
+      end
     end
   end
 end
