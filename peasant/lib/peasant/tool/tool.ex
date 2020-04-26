@@ -34,6 +34,6 @@ defmodule Peasant.Tool do
   @spec tool_handler :: Peasant.Tool.Handler
   @doc false
   def tool_handler do
-    Application.get_env(:peasant, :tool_handler, @tool_handler_default)
+    Application.get_env(:peasant, :tool_handler) || @tool_handler_default
   end
 end
