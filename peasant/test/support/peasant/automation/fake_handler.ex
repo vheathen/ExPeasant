@@ -33,6 +33,11 @@ defmodule Peasant.Automation.FakeHandler do
     :ok
   end
 
+  def move_step_to(automation_uuid, step_uuid, position) do
+    send(self(), {:move_step_to, automation_uuid, step_uuid, position})
+    :ok
+  end
+
   def start_link(%{uuid: uuid} = spec),
     do: GenServer.start_link(__MODULE__, spec, name: via_tuple(uuid))
 

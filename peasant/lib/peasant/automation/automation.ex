@@ -61,6 +61,20 @@ defmodule Peasant.Automation do
   def rename_step(automation_uuid, step_uuid, new_name),
     do: automation_handler().rename_step(automation_uuid, step_uuid, new_name)
 
+  @spec move_step_to(
+          automation_uuid :: Ecto.UUID,
+          step_uuid :: Ecto.UUID,
+          position :: :first | :last | non_neg_integer()
+        ) ::
+          :ok
+          | {:error, term()}
+  def move_step_to(automation_uuid, step_uuid, position)
+      when position in [:first, :last] or (is_integer(position) and position > 0) do
+    automation_handler().move_step_to(automation_uuid, step_uuid, position)
+  end
+
+  def move_step_to(_automation_uuid, _step_uuid, _position), do: {:error, :incorrect_position}
+
   @spec automation_handler :: Peasant.Automation.Handler | atom()
   @doc false
   def automation_handler do

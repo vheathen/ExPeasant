@@ -290,6 +290,124 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     end
   end
 
+  describe "move step to" do
+    @describetag :unit
+
+    test "should move a step with given id to the given position", %{
+      automation: automation
+    } do
+      step1 = new_step_struct()
+      step2 = new_step_struct()
+      step3 = new_step_struct()
+      step4 = new_step_struct()
+
+      # to_position1 = :first
+      # step_to_move1 = step2
+      # steps1 = [step2, step1, step3, step4]
+
+      # to_position2 = :last
+      # step_to_move2 = step1
+      # steps2 = [step2, step3, step4, step1]
+
+      # to_position3 = 1
+      # step_to_move3 = step1
+      # steps3 = [step1, step2, step3, step4]
+
+      # to_position4 = 3
+      # step_to_move4 = step2
+      # steps4 = [step1, step3, step2, step4]
+
+      to_p = [:first, :last, 1, 3]
+      indx = [0, -1, 0, 2]
+      st_to_m = [step2.uuid, step1.uuid, step1.uuid, step2.uuid]
+
+      steps0 = [step1, step2, step3, step4]
+
+      stps = [
+        [step2, step1, step3, step4],
+        [step2, step3, step4, step1],
+        [step1, step2, step3, step4],
+        [step1, step3, step2, step4]
+      ]
+
+      0..3
+      |> Enum.reduce(steps0, fn i, steps ->
+        event =
+          Event.StepMovedTo.new(
+            automation_uuid: automation.uuid,
+            step_uuid: Enum.at(st_to_m, i),
+            index: Enum.at(indx, i)
+          )
+
+        new_steps = Enum.at(stps, i)
+
+        assert {:reply, :ok, %{automation | steps: new_steps}} ==
+                 Handler.handle_call(
+                   {:move_step_to, Enum.at(st_to_m, i), Enum.at(to_p, i)},
+                   self(),
+                   %{automation | steps: steps}
+                 )
+
+        assert_receive ^event
+
+        new_steps
+      end)
+    end
+
+    test "should return :ok and no notification if step is already at the given position", %{
+      automation: automation
+    } do
+      step = new_step_struct()
+
+      automation = %{automation | steps: [step]}
+
+      assert {:reply, :ok, automation} ==
+               Handler.handle_call(
+                 {:move_step_to, step.uuid, :last},
+                 self(),
+                 automation
+               )
+
+      refute_receive _
+    end
+
+    test "should return {:error, :no_such_step_exists} step with given id doesn't exist but no any notifications",
+         %{
+           automation: automation
+         } do
+      step = new_step_struct()
+      other_uuid = UUID.uuid4()
+
+      automation = %{automation | steps: [step]}
+
+      assert {:reply, {:error, :no_such_step_exists}, automation} ==
+               Handler.handle_call(
+                 {:move_step_to, other_uuid, :last},
+                 self(),
+                 automation
+               )
+
+      refute_receive _
+    end
+
+    test "should return {:error, :active_automation_cannot_be_altered}", %{
+      automation: automation
+    } do
+      step = new_step_struct()
+
+      automation = %{automation | active: true, steps: [step]}
+
+      assert {:reply, {:error, :active_automation_cannot_be_altered}, automation} ==
+               Handler.handle_call(
+                 {:move_step_to, step.uuid, :last},
+                 self(),
+                 automation
+               )
+
+      refute_receive _
+    end
+  end
+
   def created_setup(%{automation: automation}) do
     automation_created =
       Event.Created.new(

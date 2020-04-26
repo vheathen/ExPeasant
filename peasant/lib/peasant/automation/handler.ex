@@ -29,6 +29,9 @@ defmodule Peasant.Automation.Handler do
   def rename_step(automation_uuid, step_uuid, new_name),
     do: try_action(automation_uuid, {:rename_step, step_uuid, new_name})
 
+  def move_step_to(automation_uuid, step_uuid, position),
+    do: try_action(automation_uuid, {:move_step_to, step_uuid, position})
+
   defp try_action(uuid, action) do
     try do
       GenServer.call(via_tuple(uuid), action)
@@ -115,6 +118,32 @@ defmodule Peasant.Automation.Handler do
           |> Event.StepRenamed.new()
           |> notify()
         end
+
+        {:reply, :ok, %{automation | steps: new_steps}}
+    end
+  end
+
+  def handle_call({:move_step_to, step_uuid, position}, _from, %{steps: steps} = automation) do
+    to_index = get_index(steps, position)
+    steps_count = length(steps)
+
+    case Enum.find_index(steps, &(&1.uuid == step_uuid)) do
+      nil ->
+        {:reply, {:error, :no_such_step_exists}, automation}
+
+      step_index
+      when step_index == to_index or
+             (step_index == steps_count - 1 and to_index == -1) ->
+        {:reply, :ok, automation}
+
+      step_index ->
+        {step, steps} = List.pop_at(steps, step_index)
+
+        new_steps = List.insert_at(steps, to_index, step)
+
+        [automation_uuid: automation.uuid, step_uuid: step_uuid, index: to_index]
+        |> Event.StepMovedTo.new()
+        |> notify()
 
         {:reply, :ok, %{automation | steps: new_steps}}
     end

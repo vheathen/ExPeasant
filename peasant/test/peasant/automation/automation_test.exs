@@ -131,4 +131,29 @@ defmodule Peasant.AutomationTest do
       assert_receive {:rename_step, ^automation_uuid, ^step_uuid, ^new_name}
     end
   end
+
+  describe "move_step_to/3" do
+    @describetag :unit
+    test "should run Handler.move_step_2(automation_uuid, step_uuid, position)", %{
+      automation: %{uuid: automation_uuid}
+    } do
+      step_uuid = UUID.uuid4()
+      position = :last
+
+      assert :ok = Automation.move_step_to(automation_uuid, step_uuid, position)
+      assert_receive {:move_step_to, ^automation_uuid, ^step_uuid, ^position}
+    end
+
+    test "should return {:error, :incorrect_position} if position are incorrect", %{
+      automation: %{uuid: uuid}
+    } do
+      [:atom, Faker.random_between(-10000, 0), 0]
+      |> Enum.each(fn position ->
+        step_uuid = UUID.uuid4()
+
+        assert {:error, :incorrect_position} = Automation.move_step_to(uuid, step_uuid, position)
+        refute_receive {:add_step_at, ^uuid, _, ^position}
+      end)
+    end
+  end
 end
