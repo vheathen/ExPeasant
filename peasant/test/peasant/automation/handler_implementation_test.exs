@@ -408,6 +408,136 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     end
   end
 
+  describe "activate step" do
+    @describetag :unit
+
+    test "should set :active to true for a step with given id", %{
+      automation: automation
+    } do
+      step = new_step() |> Step.new()
+
+      automation = %{automation | steps: [step]}
+
+      new_automation = %{automation | steps: [%{step | active: true}]}
+
+      step_activated =
+        Event.StepActivated.new(
+          automation_uuid: automation.uuid,
+          step_uuid: step.uuid
+        )
+
+      assert {:reply, :ok, new_automation} ==
+               Handler.handle_call({:activate_step, step.uuid}, self(), automation)
+
+      assert_receive ^step_activated
+    end
+
+    test "should return :ok if a step with given id already activated", %{
+      automation: automation
+    } do
+      step = new_step(active: true) |> Step.new()
+
+      automation = %{automation | steps: [step]}
+
+      assert {:reply, :ok, automation} ==
+               Handler.handle_call({:activate_step, step.uuid}, self(), automation)
+
+      refute_receive _
+    end
+
+    test "should return {:error, :no_such_step_exists} step with given id doesn't exist but no any notifications",
+         %{
+           automation: automation
+         } do
+      step_uuid = UUID.uuid4()
+
+      assert {:reply, {:error, :no_such_step_exists}, automation} ==
+               Handler.handle_call({:activate_step, step_uuid}, self(), automation)
+
+      refute_receive _
+    end
+
+    test "should return {:error, :active_automation_cannot_be_altered}", %{
+      automation: automation
+    } do
+      # step 1
+
+      step = new_step_struct()
+
+      automation = %{automation | active: true, steps: [step]}
+
+      assert {:reply, {:error, :active_automation_cannot_be_altered}, automation} ==
+               Handler.handle_call({:activate_step, step.uuid}, self(), automation)
+
+      refute_receive _
+    end
+  end
+
+  describe "deactivate step" do
+    @describetag :unit
+
+    test "should set :active to false for a step with given id", %{
+      automation: automation
+    } do
+      step = new_step() |> Step.new()
+
+      automation = %{automation | steps: [%{step | active: true}]}
+
+      new_automation = %{automation | steps: [step]}
+
+      step_deactivated =
+        Event.StepDeactivated.new(
+          automation_uuid: automation.uuid,
+          step_uuid: step.uuid
+        )
+
+      assert {:reply, :ok, new_automation} ==
+               Handler.handle_call({:deactivate_step, step.uuid}, self(), automation)
+
+      assert_receive ^step_deactivated
+    end
+
+    test "should return :ok if a step with given id already deactivated", %{
+      automation: automation
+    } do
+      step = new_step() |> Step.new()
+
+      automation = %{automation | steps: [step]}
+
+      assert {:reply, :ok, automation} ==
+               Handler.handle_call({:deactivate_step, step.uuid}, self(), automation)
+
+      refute_receive _
+    end
+
+    test "should return {:error, :no_such_step_exists} step with given id doesn't exist but no any notifications",
+         %{
+           automation: automation
+         } do
+      step_uuid = UUID.uuid4()
+
+      assert {:reply, {:error, :no_such_step_exists}, automation} ==
+               Handler.handle_call({:deactivate_step, step_uuid}, self(), automation)
+
+      refute_receive _
+    end
+
+    test "should return {:error, :active_automation_cannot_be_altered}", %{
+      automation: automation
+    } do
+      # step 1
+
+      step = new_step_struct(active: true)
+
+      automation = %{automation | active: true, steps: [step]}
+
+      assert {:reply, {:error, :active_automation_cannot_be_altered}, automation} ==
+               Handler.handle_call({:deactivate_step, step.uuid}, self(), automation)
+
+      refute_receive _
+    end
+  end
+
   def created_setup(%{automation: automation}) do
     automation_created =
       Event.Created.new(

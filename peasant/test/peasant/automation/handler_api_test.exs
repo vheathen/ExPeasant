@@ -123,9 +123,10 @@ defmodule Peasant.Automation.HandlerAPITest do
     test "should return {:error, :no_automation_exists} for an unknown uuid" do
       step_uuid = UUID.uuid4()
       automation_uuid = UUID.uuid4()
+      new_name = Faker.Lorem.word()
 
       assert {:error, :no_automation_exists} ==
-               Handler.delete_step(automation_uuid, step_uuid)
+               Handler.rename_step(automation_uuid, step_uuid, new_name)
     end
   end
 
@@ -149,6 +150,48 @@ defmodule Peasant.Automation.HandlerAPITest do
 
       assert {:error, :no_automation_exists} ==
                Handler.move_step_to(automation_uuid, step_uuid, position)
+    end
+  end
+
+  describe "activate_step/2" do
+    @describetag :unit
+
+    test "should cast {:activate_step, step_uuid} to a process with uuid as id", %{
+      uuid: automation_uuid
+    } do
+      step_uuid = UUID.uuid4()
+
+      assert {:call, {:activate_step, step_uuid}} ==
+               Handler.activate_step(automation_uuid, step_uuid)
+    end
+
+    test "should return {:error, :no_automation_exists} for an unknown uuid" do
+      step_uuid = UUID.uuid4()
+      automation_uuid = UUID.uuid4()
+
+      assert {:error, :no_automation_exists} ==
+               Handler.activate_step(automation_uuid, step_uuid)
+    end
+  end
+
+  describe "deactivate_step/2" do
+    @describetag :unit
+
+    test "should cast {:deactivate_step, step_uuid} to a process with uuid as id", %{
+      uuid: automation_uuid
+    } do
+      step_uuid = UUID.uuid4()
+
+      assert {:call, {:deactivate_step, step_uuid}} ==
+               Handler.deactivate_step(automation_uuid, step_uuid)
+    end
+
+    test "should return {:error, :no_automation_exists} for an unknown uuid" do
+      step_uuid = UUID.uuid4()
+      automation_uuid = UUID.uuid4()
+
+      assert {:error, :no_automation_exists} ==
+               Handler.deactivate_step(automation_uuid, step_uuid)
     end
   end
 

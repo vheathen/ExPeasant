@@ -50,8 +50,8 @@ suspended_by_tool
 - [X] move_step_to -> StepMovedTo
 - [X] rename_step -> StepRenamed
 - [ ] change_step_description -> StepDescriptionChanged
-- [ ] activate_step -> StepActivated
-- [ ] deactivate_step -> StepDeactivated
+- [X] activate_step -> StepActivated
+- [X] deactivate_step -> StepDeactivated
 - [ ] change_step_action -> StepActionChanged
 
 #### Handler

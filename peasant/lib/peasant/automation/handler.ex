@@ -32,6 +32,12 @@ defmodule Peasant.Automation.Handler do
   def move_step_to(automation_uuid, step_uuid, position),
     do: try_action(automation_uuid, {:move_step_to, step_uuid, position})
 
+  def activate_step(automation_uuid, step_uuid),
+    do: try_action(automation_uuid, {:activate_step, step_uuid})
+
+  def deactivate_step(automation_uuid, step_uuid),
+    do: try_action(automation_uuid, {:deactivate_step, step_uuid})
+
   defp try_action(uuid, action) do
     try do
       GenServer.call(via_tuple(uuid), action)
@@ -144,6 +150,42 @@ defmodule Peasant.Automation.Handler do
         [automation_uuid: automation.uuid, step_uuid: step_uuid, index: to_index]
         |> Event.StepMovedTo.new()
         |> notify()
+
+        {:reply, :ok, %{automation | steps: new_steps}}
+    end
+  end
+
+  def handle_call({:activate_step, step_uuid}, _from, %{steps: steps} = automation) do
+    case Enum.find_index(steps, &(&1.uuid == step_uuid)) do
+      nil ->
+        {:reply, {:error, :no_such_step_exists}, automation}
+
+      step_index ->
+        new_steps = List.update_at(steps, step_index, &%{&1 | active: true})
+
+        if(Enum.at(new_steps, step_index) != Enum.at(steps, step_index)) do
+          [automation_uuid: automation.uuid, step_uuid: step_uuid]
+          |> Event.StepActivated.new()
+          |> notify()
+        end
+
+        {:reply, :ok, %{automation | steps: new_steps}}
+    end
+  end
+
+  def handle_call({:deactivate_step, step_uuid}, _from, %{steps: steps} = automation) do
+    case Enum.find_index(steps, &(&1.uuid == step_uuid)) do
+      nil ->
+        {:reply, {:error, :no_such_step_exists}, automation}
+
+      step_index ->
+        new_steps = List.update_at(steps, step_index, &%{&1 | active: false})
+
+        if(Enum.at(new_steps, step_index) != Enum.at(steps, step_index)) do
+          [automation_uuid: automation.uuid, step_uuid: step_uuid]
+          |> Event.StepDeactivated.new()
+          |> notify()
+        end
 
         {:reply, :ok, %{automation | steps: new_steps}}
     end

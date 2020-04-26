@@ -75,6 +75,18 @@ defmodule Peasant.Automation do
 
   def move_step_to(_automation_uuid, _step_uuid, _position), do: {:error, :incorrect_position}
 
+  @spec activate_step(automation_uuid :: Ecto.UUID, step_uuid :: Ecto.UUID) ::
+          :ok
+          | {:error, term()}
+  def activate_step(automation_uuid, step_uuid),
+    do: automation_handler().activate_step(automation_uuid, step_uuid)
+
+  @spec deactivate_step(automation_uuid :: Ecto.UUID, step_uuid :: Ecto.UUID) ::
+          :ok
+          | {:error, term()}
+  def deactivate_step(automation_uuid, step_uuid),
+    do: automation_handler().deactivate_step(automation_uuid, step_uuid)
+
   @spec automation_handler :: Peasant.Automation.Handler | atom()
   @doc false
   def automation_handler do
