@@ -118,4 +118,17 @@ defmodule Peasant.AutomationTest do
       assert_receive {:delete_step, ^automation_uuid, ^step_uuid}
     end
   end
+
+  describe "rename_step/3" do
+    @describetag :unit
+    test "should run Handler.rename_step(automation_uuid, step_uuid, new_name)", %{
+      automation: %{uuid: automation_uuid}
+    } do
+      step_uuid = UUID.uuid4()
+      new_name = Faker.Lorem.word()
+
+      assert :ok = Automation.rename_step(automation_uuid, step_uuid, new_name)
+      assert_receive {:rename_step, ^automation_uuid, ^step_uuid, ^new_name}
+    end
+  end
 end

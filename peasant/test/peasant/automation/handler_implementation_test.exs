@@ -210,6 +210,86 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     end
   end
 
+  describe "rename step" do
+    @describetag :unit
+
+    test "should rename a step with given id", %{
+      automation: automation
+    } do
+      step = new_step() |> Step.new()
+
+      new_name = new_word(step.name)
+
+      automation = %{automation | steps: [step]}
+      new_automation = %{automation | steps: [%{step | name: new_name}]}
+
+      step_renamed =
+        Event.StepRenamed.new(
+          automation_uuid: automation.uuid,
+          step_uuid: step.uuid,
+          name: new_name
+        )
+
+      assert {:reply, :ok, new_automation} ==
+               Handler.handle_call({:rename_step, step.uuid, new_name}, self(), automation)
+
+      assert_receive ^step_renamed
+    end
+
+    test "should return :ok if a step with given id already has given name", %{
+      automation: automation
+    } do
+      step = new_step() |> Step.new()
+
+      new_name = step.name
+
+      automation = %{automation | steps: [step]}
+
+      step_renamed =
+        Event.StepRenamed.new(
+          automation_uuid: automation.uuid,
+          step_uuid: step.uuid,
+          name: new_name
+        )
+
+      assert {:reply, :ok, automation} ==
+               Handler.handle_call({:rename_step, step.uuid, new_name}, self(), automation)
+
+      refute_receive ^step_renamed
+    end
+
+    test "should return {:error, :no_such_step_exists} step with given id doesn't exist but no any notifications",
+         %{
+           automation: automation
+         } do
+      step_uuid = UUID.uuid4()
+      new_name = new_word()
+
+      assert {:reply, {:error, :no_such_step_exists}, automation} ==
+               Handler.handle_call({:rename_step, step_uuid, new_name}, self(), automation)
+
+      refute_receive _
+    end
+
+    test "should return {:error, :active_automation_cannot_be_altered}", %{
+      automation: automation
+    } do
+      # step 1
+
+      step = new_step_struct()
+      new_name = new_word()
+
+      automation = %{automation | active: true, steps: [step]}
+
+      step_deleted = Event.StepRenamed.new(automation_uuid: automation.uuid, step_uuid: step.uuid)
+
+      assert {:reply, {:error, :active_automation_cannot_be_altered}, automation} ==
+               Handler.handle_call({:rename_step, step.uuid, new_name}, self(), automation)
+
+      refute_receive ^step_deleted
+    end
+  end
+
   def created_setup(%{automation: automation}) do
     automation_created =
       Event.Created.new(
@@ -224,5 +304,12 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     automation = new_automation() |> State.new()
 
     [automation: automation]
+  end
+
+  def new_word(word \\ nil) do
+    case Faker.Lorem.word() do
+      ^word -> new_word(word)
+      new_word -> new_word
+    end
   end
 end

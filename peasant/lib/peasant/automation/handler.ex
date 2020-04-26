@@ -26,6 +26,9 @@ defmodule Peasant.Automation.Handler do
   def delete_step(automation_uuid, step_uuid),
     do: try_action(automation_uuid, {:delete_step, step_uuid})
 
+  def rename_step(automation_uuid, step_uuid, new_name),
+    do: try_action(automation_uuid, {:rename_step, step_uuid, new_name})
+
   defp try_action(uuid, action) do
     try do
       GenServer.call(via_tuple(uuid), action)
@@ -97,6 +100,24 @@ defmodule Peasant.Automation.Handler do
       end
 
     {:reply, :ok, automation}
+  end
+
+  def handle_call({:rename_step, step_uuid, new_name}, _from, %{steps: steps} = automation) do
+    case Enum.find_index(steps, &(&1.uuid == step_uuid)) do
+      nil ->
+        {:reply, {:error, :no_such_step_exists}, automation}
+
+      step_index ->
+        new_steps = List.update_at(steps, step_index, &%{&1 | name: new_name})
+
+        if(Enum.at(new_steps, step_index) != Enum.at(steps, step_index)) do
+          [automation_uuid: automation.uuid, step_uuid: step_uuid, name: new_name]
+          |> Event.StepRenamed.new()
+          |> notify()
+        end
+
+        {:reply, :ok, %{automation | steps: new_steps}}
+    end
   end
 
   defp notify(events) when is_list(events), do: Enum.each(events, &notify/1)

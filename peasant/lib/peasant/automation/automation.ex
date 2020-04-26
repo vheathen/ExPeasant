@@ -28,7 +28,9 @@ defmodule Peasant.Automation do
   # def delete(automation_uuid),
   #   do: automation_handler().delete(automation_uuid)
 
-  @spec rename(automation_uuid :: Ecto.UUID, new_name :: String.t()) :: :ok
+  @spec rename(automation_uuid :: Ecto.UUID, new_name :: String.t()) ::
+          :ok
+          | {:error, term()}
   def rename(automation_uuid, new_name),
     do: automation_handler().rename(automation_uuid, new_name)
 
@@ -52,6 +54,12 @@ defmodule Peasant.Automation do
   @spec delete_step(automation_uuid :: Ecto.UUID, step_uuid :: Ecto.UUID) :: :ok
   def delete_step(automation_uuid, step_uuid),
     do: automation_handler().delete_step(automation_uuid, step_uuid)
+
+  @spec rename_step(automation_uuid :: Ecto.UUID, step_uuid :: Ecto.UUID, new_name :: String.t()) ::
+          :ok
+          | {:error, term()}
+  def rename_step(automation_uuid, step_uuid, new_name),
+    do: automation_handler().rename_step(automation_uuid, step_uuid, new_name)
 
   @spec automation_handler :: Peasant.Automation.Handler | atom()
   @doc false

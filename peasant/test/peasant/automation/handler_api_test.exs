@@ -107,6 +107,28 @@ defmodule Peasant.Automation.HandlerAPITest do
     end
   end
 
+  describe "rename_step/3" do
+    @describetag :unit
+
+    test "should cast {:rename_step, step_uuid, new_name} to a process with uuid as id", %{
+      uuid: automation_uuid
+    } do
+      step_uuid = UUID.uuid4()
+      new_name = Faker.Lorem.word()
+
+      assert {:call, {:rename_step, step_uuid, new_name}} ==
+               Handler.rename_step(automation_uuid, step_uuid, new_name)
+    end
+
+    test "should return {:error, :no_automation_exists} for an unknown uuid" do
+      step_uuid = UUID.uuid4()
+      automation_uuid = UUID.uuid4()
+
+      assert {:error, :no_automation_exists} ==
+               Handler.delete_step(automation_uuid, step_uuid)
+    end
+  end
+
   def automation_setup(_context) do
     automation = new_automation() |> State.new()
 
