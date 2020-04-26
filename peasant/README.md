@@ -46,7 +46,7 @@ suspended_by_tool
 - [ ] deactivate -> Deactivated
 
 - [X] add_step_at -> StepAddedAt
-- [ ] delete_step -> StepDeletedAt
+- [X] delete_step -> StepDeletedAt
 - [ ] move_step_to -> StepMovedTo
 - [ ] rename_step -> StepRenamed
 - [ ] change_step_description -> StepDescriptionChanged

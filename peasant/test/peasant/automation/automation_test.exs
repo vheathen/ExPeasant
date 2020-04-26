@@ -106,4 +106,16 @@ defmodule Peasant.AutomationTest do
       end)
     end
   end
+
+  describe "delete_step/2" do
+    @describetag :unit
+    test "should run Handler.delete_step(automation_uuid, step_uuid)", %{
+      automation: %{uuid: automation_uuid}
+    } do
+      step_uuid = UUID.uuid4()
+
+      assert :ok = Automation.delete_step(automation_uuid, step_uuid)
+      assert_receive {:delete_step, ^automation_uuid, ^step_uuid}
+    end
+  end
 end

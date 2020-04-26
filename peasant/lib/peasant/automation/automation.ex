@@ -49,6 +49,10 @@ defmodule Peasant.Automation do
 
   def add_step_at(_automation_uuid, _step_spec, _position), do: {:error, :incorrect_position}
 
+  @spec delete_step(automation_uuid :: Ecto.UUID, step_uuid :: Ecto.UUID) :: :ok
+  def delete_step(automation_uuid, step_uuid),
+    do: automation_handler().delete_step(automation_uuid, step_uuid)
+
   @spec automation_handler :: Peasant.Automation.Handler | atom()
   @doc false
   def automation_handler do
