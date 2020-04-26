@@ -90,6 +90,6 @@ defmodule Peasant.Automation do
   @spec automation_handler :: Peasant.Automation.Handler | atom()
   @doc false
   def automation_handler do
-    Application.get_env(:peasant, :automation_handler, @automation_handler_default)
+    Application.get_env(:peasant, :automation_handler) || @automation_handler_default
   end
 end
