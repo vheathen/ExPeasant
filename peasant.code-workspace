@@ -5,10 +5,6 @@
 			"path": "peasant"
 		},
 		{
-			"name": "panel",
-			"path": "panel"
-		},
-		{
 			"name": "firmware",
 			"path": "firmware"
 		},
