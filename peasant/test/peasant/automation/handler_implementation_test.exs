@@ -58,25 +58,8 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     end
   end
 
-  describe "activate" do
+  describe "activate and basic automation process" do
     @describetag :unit
-
-    test "should activate automation, reply :ok and {:continue, :activate}",
-         %{automation_created: %{automation: automation}} do
-      assert {:reply, :ok, %{automation | active: true}, {:continue, :activate}} ==
-               Handler.handle_call(:activate, self(), automation)
-
-      refute_receive _
-    end
-
-    test "with {:continue, :activate} should fire a Activated event and start an actual automation process",
-         %{automation_created: %{automation: automation}} do
-      assert {:noreply, automation} == Handler.handle_continue(:activate, automation)
-
-      event = Event.Activated.new(automation_uuid: automation.uuid)
-
-      assert_receive ^event
-    end
 
     test "should reply :ok without :continue if automation already active",
          %{automation_created: %{automation: automation}} do
@@ -85,28 +68,24 @@ defmodule Peasant.Automation.HandlerImplementationTest do
 
       refute_receive _
     end
+
+    test "should activate automation, reset :last_step_index to -1, reply :ok and {:continue, :next_step}",
+         %{automation_created: %{automation: automation}} do
+      assert {
+               :reply,
+               :ok,
+               %{automation | active: true, last_step_index: -1},
+               {:continue, :next_step}
+             } == Handler.handle_call(:activate, self(), %{automation | last_step_index: 5})
+
+      event = Event.Activated.new(automation_uuid: automation.uuid)
+
+      assert_receive ^event
+    end
   end
 
   describe "deactivate" do
     @describetag :unit
-
-    test "should deactivate automation, reply :ok and {:continue, :deactivate}",
-         %{automation_created: %{automation: automation}} do
-      assert {:reply, :ok, automation, {:continue, :deactivate}} ==
-               Handler.handle_call(:deactivate, self(), %{automation | active: true})
-
-      refute_receive _
-    end
-
-    test "with {:continue, :deactivate} should fire a Deactivated event and start an actual automation process",
-         %{automation_created: %{automation: automation}} do
-      assert {:noreply, %{automation | active: true}} ==
-               Handler.handle_continue(:deactivate, %{automation | active: true})
-
-      event = Event.Deactivated.new(automation_uuid: automation.uuid)
-
-      assert_receive ^event
-    end
 
     test "should reply :ok without :continue if automation already inactive",
          %{automation_created: %{automation: automation}} do
@@ -114,6 +93,55 @@ defmodule Peasant.Automation.HandlerImplementationTest do
                Handler.handle_call(:deactivate, self(), automation)
 
       refute_receive _
+    end
+
+    test "should deactivate automation, reply :ok and {:continue, :deactivated}",
+         %{automation_created: %{automation: automation}} do
+      assert {:reply, :ok, automation, {:continue, :deactivated}} ==
+               Handler.handle_call(:deactivate, self(), %{automation | active: true})
+
+      refute_receive _
+    end
+
+    test "with {:continue, :deactivated} should fire a Deactivated event and return {:continue, :finish_step}",
+         %{automation_created: %{automation: automation}} do
+      automation = %{automation | steps: [new_step_struct()], last_step_index: 0}
+
+      assert {:noreply, automation} ==
+               Handler.handle_continue(:deactivated, automation)
+
+      event = Event.Deactivated.new(automation_uuid: automation.uuid)
+
+      assert_receive ^event
+    end
+
+    test "with {:continue, :deactivated} should finish current step",
+         %{automation_created: %{automation: automation}} do
+      automation = %{automation | steps: [new_step_struct()], last_step_index: 0}
+
+      assert {:noreply, automation} ==
+               Handler.handle_continue(:deactivated, automation)
+
+      assert_receive %Event.StepStopped{}
+    end
+
+    test "with {:continue, :deactivated} should stop and nilify timer and timer_ref",
+         %{automation_created: %{automation: automation}} do
+      timer = Process.send_after(self(), :okk, 1_000)
+      timer_ref = UUID.uuid4()
+
+      automation = %{
+        automation
+        | steps: [new_step_struct()],
+          last_step_index: 0,
+          timer: timer,
+          timer_ref: timer_ref
+      }
+
+      assert {:noreply, %{automation | timer: nil, timer_ref: nil}} ==
+               Handler.handle_continue(:deactivated, automation)
+
+      refute Process.read_timer(timer)
     end
   end
 
@@ -125,13 +153,13 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     } do
       # step 1
 
-      step1 = new_step() |> Step.new()
+      %{uuid: step_uuid} = step1 = new_step() |> Step.new()
       position = :first
       steps = [step1]
 
       step_added_at = Event.StepAddedAt.new(automation_uuid: uuid, step: step1, index: 0)
 
-      assert {:reply, :ok, new_automation} =
+      assert {:reply, {:ok, ^step_uuid}, new_automation} =
                Handler.handle_call({:add_step_at, step1, position}, self(), automation)
 
       total_steps = total_steps + 1
@@ -141,13 +169,13 @@ defmodule Peasant.Automation.HandlerImplementationTest do
 
       # step 2
 
-      step2 = new_step() |> Step.new()
+      %{uuid: step_uuid} = step2 = new_step() |> Step.new()
       position = 1
       steps = [step2, step1]
 
       step_added_at = Event.StepAddedAt.new(automation_uuid: uuid, step: step2, index: 0)
 
-      assert {:reply, :ok, new_automation} =
+      assert {:reply, {:ok, ^step_uuid}, new_automation} =
                Handler.handle_call({:add_step_at, step2, position}, self(), new_automation)
 
       total_steps = total_steps + 1
@@ -157,13 +185,13 @@ defmodule Peasant.Automation.HandlerImplementationTest do
 
       # step 3
 
-      step3 = new_step() |> Step.new()
+      %{uuid: step_uuid} = step3 = new_step() |> Step.new()
       position = :last
       steps = [step2, step1, step3]
 
       step_added_at = Event.StepAddedAt.new(automation_uuid: uuid, step: step3, index: -1)
 
-      assert {:reply, :ok, new_automation} =
+      assert {:reply, {:ok, ^step_uuid}, new_automation} =
                Handler.handle_call({:add_step_at, step3, position}, self(), new_automation)
 
       total_steps = total_steps + 1
@@ -173,14 +201,14 @@ defmodule Peasant.Automation.HandlerImplementationTest do
 
       # step 4
 
-      step4 = new_step() |> Step.new()
+      %{uuid: step_uuid} = step4 = new_step() |> Step.new()
       position = 2
       steps = [step2, step4, step1, step3]
 
       step_added_at =
         Event.StepAddedAt.new(automation_uuid: uuid, step: step4, index: position - 1)
 
-      assert {:reply, :ok, new_automation} =
+      assert {:reply, {:ok, ^step_uuid}, new_automation} =
                Handler.handle_call({:add_step_at, step4, position}, self(), new_automation)
 
       total_steps = total_steps + 1

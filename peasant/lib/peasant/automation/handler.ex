@@ -3,7 +3,11 @@ defmodule Peasant.Automation.Handler do
 
   @domain "automations"
 
+  @awaiting "awaiting"
+  @action "action"
+
   alias Peasant.Automation.State
+  alias Peasant.Automation.State.Step
   alias Peasant.Automation.Event
 
   import Peasant.Helper
@@ -66,22 +70,140 @@ defmodule Peasant.Automation.Handler do
     {:noreply, automation}
   end
 
-  def handle_continue(:activate, automation) do
-    # Process.send(self(), :start_automation, [])
+  def handle_continue(
+        :deactivated,
+        %{steps: steps, last_step_index: last_step_index, timer: timer} = automation
+      ) do
+    %{uuid: current_step_uuid} = Enum.at(steps, last_step_index)
 
-    [automation_uuid: automation.uuid]
-    |> Event.Activated.new()
-    |> notify()
+    stop_timer(timer)
+    automation = %{automation | timer: nil, timer_ref: nil}
 
-    {:noreply, automation}
-  end
+    finish_step(current_step_uuid, automation)
 
-  def handle_continue(:deactivate, automation) do
     [automation_uuid: automation.uuid]
     |> Event.Deactivated.new()
     |> notify()
 
     {:noreply, automation}
+  end
+
+  def handle_continue(
+        :next_step,
+        %{active: false} = automation
+      ),
+      do: {:noreply, automation}
+
+  def handle_continue(
+        :next_step,
+        %{total_steps: total_steps, last_step_index: last_step_index} = automation
+      )
+      when last_step_index + 1 == total_steps,
+      do: {:noreply, %{automation | last_step_index: -1}, {:continue, :next_step}}
+
+  def handle_continue(
+        :next_step,
+        %{steps: steps, last_step_index: last_step_index} = automation
+      ) do
+    current_step_index = last_step_index + 1
+    current_step = Enum.at(steps, current_step_index)
+
+    automation = %{
+      automation
+      | last_step_index: current_step_index
+    }
+
+    {:noreply, automation, {:continue, {:start_step, current_step}}}
+  end
+
+  def handle_continue({_, %Step{active: false}}, automation),
+    do: {:noreply, automation, {:continue, :next_step}}
+
+  def handle_continue({:start_step, _current_step}, %{active: false} = automation),
+    do: {:noreply, automation}
+
+  def handle_continue(
+        {:start_step, current_step},
+        %{last_step_index: current_step_index} = automation
+      ) do
+    step_started_timestamp = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
+
+    automation = %{
+      automation
+      | last_step_started_timestamp: step_started_timestamp
+    }
+
+    [
+      automation_uuid: automation.uuid,
+      step_uuid: current_step.uuid,
+      step_position: current_step_index + 1,
+      timestamp: step_started_timestamp
+    ]
+    |> Event.StepStarted.new()
+    |> notify()
+
+    {:noreply, automation, {:continue, {:do_step, current_step}}}
+  end
+
+  def handle_continue(
+        {:do_step, %Step{uuid: step_uuid, type: @awaiting, time_to_wait: time_to_wait}},
+        automation
+      )
+      when is_integer(time_to_wait) do
+    timer = Process.send_after(self(), {:waiting_finished, step_uuid}, time_to_wait)
+
+    {:noreply, %{automation | timer: timer, timer_ref: step_uuid}}
+  end
+
+  def handle_continue(
+        {:do_step,
+         %Step{
+           type: @action,
+           tool_uuid: tool_uuid,
+           action: action,
+           action_config: action_config
+         } = current_step},
+        automation
+      ) do
+    case Peasant.Tool.commit(tool_uuid, action, action_config) do
+      {:error, error} ->
+        {:noreply, automation, {:continue, {:fail_step, current_step.uuid, error}}}
+
+      _ ->
+        {:noreply, automation, {:continue, {:finish_step, current_step.uuid}}}
+    end
+  end
+
+  def handle_continue(
+        {:finish_step, current_step_uuid},
+        automation
+      ) do
+    finish_step(current_step_uuid, automation)
+
+    {:noreply, automation, {:continue, :next_step}}
+  end
+
+  def handle_continue(
+        {:fail_step, current_step_uuid, error},
+        %{
+          last_step_index: current_step_index,
+          last_step_started_timestamp: step_started_timestamp
+        } = automation
+      ) do
+    step_stopped_timestamp = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
+
+    [
+      automation_uuid: automation.uuid,
+      step_uuid: current_step_uuid,
+      step_position: current_step_index + 1,
+      timestamp: step_stopped_timestamp,
+      step_duration: step_stopped_timestamp - step_started_timestamp,
+      details: error
+    ]
+    |> Event.StepFailed.new()
+    |> notify()
+
+    {:noreply, automation, {:continue, :next_step}}
   end
 
   def handle_call({:rename, new_name}, _from, %{name: new_name} = automation),
@@ -98,14 +220,19 @@ defmodule Peasant.Automation.Handler do
   def handle_call(:activate, _from, %{active: true} = automation),
     do: {:reply, :ok, automation}
 
-  def handle_call(:activate, _from, automation),
-    do: {:reply, :ok, %{automation | active: true}, {:continue, :activate}}
+  def handle_call(:activate, _from, automation) do
+    [automation_uuid: automation.uuid]
+    |> Event.Activated.new()
+    |> notify()
+
+    {:reply, :ok, %{automation | active: true, last_step_index: -1}, {:continue, :next_step}}
+  end
 
   def handle_call(:deactivate, _from, %{active: false} = automation),
     do: {:reply, :ok, automation}
 
   def handle_call(:deactivate, _from, automation),
-    do: {:reply, :ok, %{automation | active: false}, {:continue, :deactivate}}
+    do: {:reply, :ok, %{automation | active: false}, {:continue, :deactivated}}
 
   #
   # step operations
@@ -128,7 +255,7 @@ defmodule Peasant.Automation.Handler do
     |> Event.StepAddedAt.new()
     |> notify()
 
-    {:reply, :ok, %{automation | steps: steps, total_steps: total_steps}}
+    {:reply, {:ok, step.uuid}, %{automation | steps: steps, total_steps: total_steps}}
   end
 
   def handle_call(
@@ -238,6 +365,21 @@ defmodule Peasant.Automation.Handler do
     end
   end
 
+  def handle_info(
+        {:waiting_finished, step_uuid},
+        %{
+          timer: timer,
+          timer_ref: step_uuid
+        } = automation
+      ) do
+    stop_timer(timer)
+
+    {:noreply, %{automation | timer: nil, timer_ref: nil}, {:continue, {:finish_step, step_uuid}}}
+  end
+
+  def handle_info({:waiting_finished, _step_uuid, _timer_ref}, automation),
+    do: {:noreply, automation}
+
   defp notify(events) when is_list(events), do: Enum.each(events, &notify/1)
   defp notify(event), do: Peasant.broadcast(@domain, event)
 
@@ -246,4 +388,27 @@ defmodule Peasant.Automation.Handler do
   defp get_index(_list, position) when position < 1, do: 0
   defp get_index(list, position) when position > length(list), do: -1
   defp get_index(_list, position), do: position - 1
+
+  defp stop_timer(timer_ref) when is_reference(timer_ref), do: Process.cancel_timer(timer_ref)
+  defp stop_timer(_), do: :ok
+
+  defp finish_step(
+         current_step_uuid,
+         %{
+           last_step_index: current_step_index,
+           last_step_started_timestamp: step_started_timestamp
+         } = automation
+       ) do
+    step_stopped_timestamp = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
+
+    [
+      automation_uuid: automation.uuid,
+      step_uuid: current_step_uuid,
+      step_position: current_step_index + 1,
+      timestamp: step_stopped_timestamp,
+      step_duration: step_stopped_timestamp - step_started_timestamp
+    ]
+    |> Event.StepStopped.new()
+    |> notify()
+  end
 end
