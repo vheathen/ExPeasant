@@ -51,7 +51,7 @@ defmodule Peasant.Automation do
           step_spec :: map(),
           position :: :first | :last | non_neg_integer()
         ) ::
-          :ok
+          {:ok, step_uuid :: Ecto.UUID}
           | {:error, term()}
   def add_step_at(automation_uuid, step_spec, position)
       when position in [:first, :last] or (is_integer(position) and position > 0) do

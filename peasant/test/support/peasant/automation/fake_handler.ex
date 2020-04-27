@@ -30,7 +30,7 @@ defmodule Peasant.Automation.FakeHandler do
 
   def add_step_at(automation_uuid, step, position) do
     send(self(), {:add_step_at, automation_uuid, step, position})
-    :ok
+    {:ok, step.uuid}
   end
 
   def delete_step(automation_uuid, step_uuid) do

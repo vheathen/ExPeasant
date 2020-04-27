@@ -90,12 +90,13 @@ defmodule Peasant.AutomationTest do
       automation: %{uuid: uuid}
     } do
       step_spec = new_step()
-      step = step_spec |> Step.new()
       position = :first
 
-      assert :ok = Automation.add_step_at(uuid, step_spec, position)
-      assert_receive {:add_step_at, ^uuid, step_gotten, ^position}
-      assert Map.delete(step_gotten, :uuid) == Map.delete(step, :uuid)
+      assert {:ok, step_uuid} = Automation.add_step_at(uuid, step_spec, position)
+
+      step = step_spec |> Step.new() |> Map.put(:uuid, step_uuid)
+
+      assert_receive {:add_step_at, ^uuid, ^step, ^position}
     end
 
     test "should return {:error, term()} if step specs are incorrect", %{
