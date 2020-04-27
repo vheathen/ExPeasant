@@ -65,6 +65,34 @@ defmodule Peasant.Automation.HandlerAPITest do
     end
   end
 
+  describe "activate/2" do
+    @describetag :unit
+
+    test "should cast :activate to a process with uuid as id", %{uuid: uuid} do
+      assert {:call, :activate} == Handler.activate(uuid)
+    end
+
+    test "should return {:error, :no_automation_exists} for an unknown uuid" do
+      uuid = UUID.uuid4()
+
+      assert {:error, :no_automation_exists} == Handler.activate(uuid)
+    end
+  end
+
+  describe "deactivate/2" do
+    @describetag :unit
+
+    test "should cast :deactivate to a process with uuid as id", %{uuid: uuid} do
+      assert {:call, :deactivate} == Handler.deactivate(uuid)
+    end
+
+    test "should return {:error, :no_automation_exists} for an unknown uuid" do
+      uuid = UUID.uuid4()
+
+      assert {:error, :no_automation_exists} == Handler.deactivate(uuid)
+    end
+  end
+
   describe "add_step_at/3" do
     @describetag :unit
 

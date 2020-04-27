@@ -68,6 +68,22 @@ defmodule Peasant.AutomationTest do
     end
   end
 
+  describe "activate/1" do
+    @describetag :unit
+    test "should run Handler.activate(uuid)", %{automation: %{uuid: uuid}} do
+      assert :ok = Automation.activate(uuid)
+      assert_receive {:activate, ^uuid}
+    end
+  end
+
+  describe "deactivate/1" do
+    @describetag :unit
+    test "should run Handler.deactivate(uuid)", %{automation: %{uuid: uuid}} do
+      assert :ok = Automation.deactivate(uuid)
+      assert_receive {:deactivate, ^uuid}
+    end
+  end
+
   describe "add_step_at/3" do
     @describetag :unit
     test "should run Handler.add_step_at(uuid, step, position) if options are correct", %{

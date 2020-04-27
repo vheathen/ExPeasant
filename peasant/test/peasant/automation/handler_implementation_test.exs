@@ -58,6 +58,65 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     end
   end
 
+  describe "activate" do
+    @describetag :unit
+
+    test "should activate automation, reply :ok and {:continue, :activate}",
+         %{automation_created: %{automation: automation}} do
+      assert {:reply, :ok, %{automation | active: true}, {:continue, :activate}} ==
+               Handler.handle_call(:activate, self(), automation)
+
+      refute_receive _
+    end
+
+    test "with {:continue, :activate} should fire a Activated event and start an actual automation process",
+         %{automation_created: %{automation: automation}} do
+      assert {:noreply, automation} == Handler.handle_continue(:activate, automation)
+
+      event = Event.Activated.new(automation_uuid: automation.uuid)
+
+      assert_receive ^event
+    end
+
+    test "should reply :ok without :continue if automation already active",
+         %{automation_created: %{automation: automation}} do
+      assert {:reply, :ok, %{automation | active: true}} ==
+               Handler.handle_call(:activate, self(), %{automation | active: true})
+
+      refute_receive _
+    end
+  end
+
+  describe "deactivate" do
+    @describetag :unit
+
+    test "should deactivate automation, reply :ok and {:continue, :deactivate}",
+         %{automation_created: %{automation: automation}} do
+      assert {:reply, :ok, automation, {:continue, :deactivate}} ==
+               Handler.handle_call(:deactivate, self(), %{automation | active: true})
+
+      refute_receive _
+    end
+
+    test "with {:continue, :deactivate} should fire a Deactivated event and start an actual automation process",
+         %{automation_created: %{automation: automation}} do
+      assert {:noreply, %{automation | active: true}} ==
+               Handler.handle_continue(:deactivate, %{automation | active: true})
+
+      event = Event.Deactivated.new(automation_uuid: automation.uuid)
+
+      assert_receive ^event
+    end
+
+    test "should reply :ok without :continue if automation already inactive",
+         %{automation_created: %{automation: automation}} do
+      assert {:reply, :ok, automation} ==
+               Handler.handle_call(:deactivate, self(), automation)
+
+      refute_receive _
+    end
+  end
+
   describe "add step at" do
     @describetag :unit
 

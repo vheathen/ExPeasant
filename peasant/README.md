@@ -35,6 +35,9 @@ action_config -> cast action_config via action struct
 wait_for_events
 active
 suspended_by_tool
+- [X] type : "action" | "automation" | "awaiting"
+- [X] time_to_wait - in ms
+- [ ] automation_uuid for embedding automation
 
 
 #### Methods

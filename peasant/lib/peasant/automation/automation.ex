@@ -34,6 +34,18 @@ defmodule Peasant.Automation do
   def rename(automation_uuid, new_name),
     do: automation_handler().rename(automation_uuid, new_name)
 
+  @spec activate(automation_uuid :: Ecto.UUID) ::
+          :ok
+          | {:error, term()}
+  def activate(automation_uuid),
+    do: automation_handler().activate(automation_uuid)
+
+  @spec deactivate(automation_uuid :: Ecto.UUID) ::
+          :ok
+          | {:error, term()}
+  def deactivate(automation_uuid),
+    do: automation_handler().deactivate(automation_uuid)
+
   @spec add_step_at(
           automation_uuid :: Ecto.UUID,
           step_spec :: map(),

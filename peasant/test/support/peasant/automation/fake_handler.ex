@@ -18,6 +18,16 @@ defmodule Peasant.Automation.FakeHandler do
     :ok
   end
 
+  def activate(automation_uuid) do
+    send(self(), {:activate, automation_uuid})
+    :ok
+  end
+
+  def deactivate(automation_uuid) do
+    send(self(), {:deactivate, automation_uuid})
+    :ok
+  end
+
   def add_step_at(automation_uuid, step, position) do
     send(self(), {:add_step_at, automation_uuid, step, position})
     :ok

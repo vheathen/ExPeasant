@@ -20,6 +20,10 @@ defmodule Peasant.Automation.Handler do
 
   def rename(automation_uuid, new_name), do: try_action(automation_uuid, {:rename, new_name})
 
+  def activate(automation_uuid), do: try_action(automation_uuid, :activate)
+
+  def deactivate(automation_uuid), do: try_action(automation_uuid, :deactivate)
+
   def add_step_at(automation_uuid, step, position),
     do: try_action(automation_uuid, {:add_step_at, step, position})
 
@@ -62,6 +66,22 @@ defmodule Peasant.Automation.Handler do
     {:noreply, automation}
   end
 
+  def handle_continue(:activate, automation) do
+    [automation_uuid: automation.uuid]
+    |> Event.Activated.new()
+    |> notify()
+
+    {:noreply, automation}
+  end
+
+  def handle_continue(:deactivate, automation) do
+    [automation_uuid: automation.uuid]
+    |> Event.Deactivated.new()
+    |> notify()
+
+    {:noreply, automation}
+  end
+
   def handle_call({:rename, new_name}, _from, %{name: new_name} = automation),
     do: {:reply, :ok, automation}
 
@@ -72,6 +92,18 @@ defmodule Peasant.Automation.Handler do
 
     {:reply, :ok, %{automation | name: new_name}}
   end
+
+  def handle_call(:activate, _from, %{active: true} = automation),
+    do: {:reply, :ok, automation}
+
+  def handle_call(:activate, _from, automation),
+    do: {:reply, :ok, %{automation | active: true}, {:continue, :activate}}
+
+  def handle_call(:deactivate, _from, %{active: false} = automation),
+    do: {:reply, :ok, automation}
+
+  def handle_call(:deactivate, _from, automation),
+    do: {:reply, :ok, %{automation | active: false}, {:continue, :deactivate}}
 
   #
   # step operations
