@@ -33,12 +33,12 @@ defmodule Peasant.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.5.0-rc.0", override: true},
+      {:phoenix, "~> 1.5.1", override: true},
       {:phoenix_live_view, "~> 0.12.0"},
       {:floki, ">= 0.0.0", only: :test},
-      {:phoenix_html, "~> 2.11"},
+      {:phoenix_html, "~> 2.14"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
-      {:phoenix_live_dashboard, "~> 0.1.0"},
+      {:phoenix_live_dashboard, "~> 0.2.0"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
       {:gettext, "~> 0.11"},
@@ -49,7 +49,7 @@ defmodule Peasant.MixProject do
       {:phoenix_pubsub, "~> 2.0"},
       {:ecto, "~> 3.4.0"},
       {:elixir_uuid, "~> 1.2"},
-      {:cubdb, "~> 1.0.0-rc.2"},
+      {:cubdb, "~> 1.0.0-rc.3"},
       {:circuits_gpio, "~> 0.4"},
 
       # dev\test deps
