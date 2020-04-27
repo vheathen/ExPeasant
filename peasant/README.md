@@ -18,10 +18,11 @@
 - [X] steps
 - [X] total_steps
 - [X] last_step_index # default: -1
-- [ ] last_step_started_at
+- [X] last_step_started_timestamp
 - [X] active
 - [X] new
 - [X] timer
+- [X] timer_ref # to check reference value on return
 
 ###### Steps
 - [X] uuid
