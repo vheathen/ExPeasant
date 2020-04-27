@@ -47,8 +47,8 @@ config :logger, backends: [RingLogger]
 #     signing_salt: "yKuB4TrjwUnkPdRbnt1E89bCXJVKz/ND"
 #   ]
 
-import_config "../../panel/config/config.exs"
-import_config "../../panel/config/prod.exs"
+import_config "../../peasant/config/config.exs"
+import_config "../../peasant/config/prod.exs"
 
 config :phoenix, :json_library, Jason
 

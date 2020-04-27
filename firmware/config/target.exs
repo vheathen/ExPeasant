@@ -1,7 +1,7 @@
 import Config
 
 # Database path
-config :panel, :paneldb, "/root/data/paneldb"
+config :peasant, :peasantdb, "/root/data/peasantdb"
 
 # Use shoehorn to start the main application. See the shoehorn
 # docs for separating out critical OTP applications such as those
