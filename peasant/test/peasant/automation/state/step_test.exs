@@ -16,6 +16,11 @@ defmodule Peasant.Automation.State.StepTest do
     :time_to_wait
   ]
 
+  @allowed_types [
+    "action",
+    "awaiting"
+  ]
+
   setup do
     step_params = new_step()
 
@@ -33,6 +38,37 @@ defmodule Peasant.Automation.State.StepTest do
     test "should have :type field", %{step: step} do
       assert Map.has_key?(step, :type)
       assert step.type == "action"
+    end
+
+    test "should validate :type field values" do
+      Enum.each(@allowed_types, fn type ->
+        assert %Step{type: ^type} = new_step(type: type) |> Step.new()
+      end)
+
+      type = Faker.Lorem.word()
+
+      assert {
+               :error,
+               [
+                 type: {
+                   "not a proper step type",
+                   [validation: :type]
+                 }
+               ]
+             } = new_step(type: type) |> Step.new()
+
+      [Faker.random_between(-10000, 10000), :atom]
+      |> Enum.each(fn type ->
+        assert {
+                 :error,
+                 [
+                   type: {
+                     "is invalid",
+                     [{:type, :string}, {:validation, :cast}]
+                   }
+                 ]
+               } == new_step(type: type) |> Step.new()
+      end)
     end
   end
 
@@ -92,7 +128,7 @@ defmodule Peasant.Automation.State.StepTest do
                     ^req_field,
                     {"can't be blank", [validation: :required]}
                   }
-                ]} = new_step_awaiting() |> Map.delete(req_field) |> Step.new()
+                ]} = new_step(type: "awaiting") |> Map.delete(req_field) |> Step.new()
       end)
     end
 
@@ -102,7 +138,7 @@ defmodule Peasant.Automation.State.StepTest do
                 time_to_wait:
                   {"must be greater than %{number}",
                    [validation: :number, kind: :greater_than, number: _]}
-              ]} = new_step_awaiting() |> Map.put(:time_to_wait, -1) |> Step.new()
+              ]} = new_step(type: "awaiting") |> Map.put(:time_to_wait, -1) |> Step.new()
     end
   end
 end
