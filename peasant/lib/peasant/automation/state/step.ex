@@ -4,6 +4,8 @@ defmodule Peasant.Automation.State.Step do
   embedded_schema do
     field(:name, :string)
     field(:description, :string)
+    field(:type, :string, default: "action")
+    field(:time_to_wait, :integer)
     field(:tool_uuid, :binary_id)
     field(:action, :any, virtual: true)
     field(:action_config, :map)
@@ -14,28 +16,68 @@ defmodule Peasant.Automation.State.Step do
     timestamps()
   end
 
-  @required_fields ~w(
-        name
+  def required(type \\ "common")
+
+  def required("action"),
+    do: ~w(
         tool_uuid
         action
+      )a ++ required()
+
+  def required("awaiting"),
+    do: ~w(
+        time_to_wait
+      )a ++ required()
+
+  def required(_),
+    do: ~w(
+        name
+        type
       )a
 
-  @cast_fields ~w(
-        description
+  def not_required(type \\ "common")
+
+  def not_required("action"),
+    do: ~w(
         action_config
         wait_for_events
+      )a ++ not_required()
+
+  def not_required(_),
+    do: ~w(
+        description
         active
-      )a ++ @required_fields
+      )a
 
   @impl Peasant.Schema
-  def changeset(state, params) do
+  def changeset(state, %{type: type} = params) do
     state
-    |> cast(params, @cast_fields)
-    |> validate_required(@required_fields)
-    |> validate_action(:action)
+    |> cast(params, not_required(type) ++ required(type))
+    |> validate_required(required(type))
+    |> maybe_validate_action()
+    |> maybe_validate_time_to_wait()
   end
 
-  def validate_action(changeset, field) do
+  def changeset(state, params) do
+    params = params |> Enum.into(%{}) |> Map.put(:type, "action")
+    changeset(state, params)
+  end
+
+  def maybe_validate_time_to_wait(changeset) do
+    case fetch_field(changeset, :type) do
+      {_, "awaiting"} -> validate_number(changeset, :time_to_wait, greater_than: -1)
+      _ -> changeset
+    end
+  end
+
+  def maybe_validate_action(changeset) do
+    case fetch_field(changeset, :type) do
+      {_, "action"} -> validate_action(changeset, :action)
+      _ -> changeset
+    end
+  end
+
+  def validate_action(%{} = changeset, field) do
     validate_change(
       changeset,
       field,

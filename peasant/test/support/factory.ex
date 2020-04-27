@@ -22,12 +22,34 @@ defmodule Peasant.Factory do
     %{
       name: Faker.Lorem.word(),
       description: Faker.Lorem.sentence(),
+      type: "action",
       tool_uuid: UUID.uuid4(),
       action: random_action(),
       action_config: %{},
       wait_for_events: false
     }
   end
+
+  def new_step_awaiting_factory do
+    %{
+      name: Faker.Lorem.word(),
+      description: Faker.Lorem.sentence(),
+      type: "awaiting",
+      time_to_wait: Enum.random(10..100),
+      wait_for_events: false
+    }
+  end
+
+  # def new_step_factory do
+  #   %{
+  #     name: Faker.Lorem.word(),
+  #     description: Faker.Lorem.sentence(),
+  #     tool_uuid: UUID.uuid4(),
+  #     action: random_action(),
+  #     action_config: %{},
+  #     wait_for_events: false
+  #   }
+  # end
 
   defp random_action do
     [

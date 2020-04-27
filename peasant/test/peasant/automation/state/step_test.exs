@@ -3,10 +3,17 @@ defmodule Peasant.Automation.State.StepTest do
 
   alias Peasant.Automation.State.Step
 
-  @new_step_required_fields [
-    :name,
+  @base_required_fields [
+    :name
+  ]
+
+  @action_required_fields [
     :tool_uuid,
     :action
+  ]
+
+  @awaiting_required_fields [
+    :time_to_wait
   ]
 
   setup do
@@ -23,12 +30,21 @@ defmodule Peasant.Automation.State.StepTest do
 
     test "should have used Peasant.Schema as a basement", do: :ok
 
-    test "should cast all fields", %{step_params: step_params, step: step} do
+    test "should have :type field", %{step: step} do
+      assert Map.has_key?(step, :type)
+      assert step.type == "action"
+    end
+  end
+
+  describe "type \"action\"" do
+    @describetag :unit
+
+    test "should cast all fields for action", %{step_params: step_params, step: step} do
       check_recursive(step_params, step)
     end
 
     test "should return an error if there is no required field", %{step_params: step_params} do
-      Enum.each(@new_step_required_fields, fn req_field ->
+      Enum.each(@base_required_fields ++ @action_required_fields, fn req_field ->
         assert {:error,
                 [
                   {
@@ -62,6 +78,31 @@ defmodule Peasant.Automation.State.StepTest do
 
       assert {:error, [action: {"not an atom or string", [validation: :action]}]} ==
                Step.new(spec)
+    end
+  end
+
+  describe "type \"awaiting\"" do
+    @describetag :unit
+
+    test "should return an error if there is no required field" do
+      Enum.each(@base_required_fields ++ @awaiting_required_fields, fn req_field ->
+        assert {:error,
+                [
+                  {
+                    ^req_field,
+                    {"can't be blank", [validation: :required]}
+                  }
+                ]} = new_step_awaiting() |> Map.delete(req_field) |> Step.new()
+      end)
+    end
+
+    test "time_to_wait should be a non-negative integer" do
+      assert {:error,
+              [
+                time_to_wait:
+                  {"must be greater than %{number}",
+                   [validation: :number, kind: :greater_than, number: _]}
+              ]} = new_step_awaiting() |> Map.put(:time_to_wait, -1) |> Step.new()
     end
   end
 end
