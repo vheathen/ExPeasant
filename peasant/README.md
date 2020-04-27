@@ -12,29 +12,27 @@
 ### Automation
 
 #### State
-- [X] Done
-uuid
-name
-description
-steps
-total_steps
-current_step
-current_step_started_at
-active
-new
-timer
+- [X] uuid
+- [X] name
+- [X] description
+- [X] steps
+- [X] total_steps
+- [X] last_step_index # default: -1
+- [ ] last_step_started_at
+- [X] active
+- [X] new
+- [X] timer
 
 ###### Steps
-- [X] Done
-uuid
-name
-description
-tool_uuid
+- [X] uuid
+- [X] name
+- [X] description
+- [X] tool_uuid
 - [X] action -> validate_action
-action_config -> cast action_config via action struct
-wait_for_events
-active
-suspended_by_tool
+- [ ] action_config -> cast action_config via action struct
+- [ ] wait_for_events
+- [X] active
+- [ ] suspended_by_tool
 - [X] type : "action" | "automation" | "awaiting"
 - [X] time_to_wait - in ms
 - [ ] automation_uuid for embedding automation
@@ -45,8 +43,8 @@ suspended_by_tool
 - [ ] delete -> Deleted
 - [X] rename -> Renamed
 - [ ] change_description -> DescriptionChanged
-- [ ] activate -> Activated
-- [ ] deactivate -> Deactivated
+- [X] activate -> Activated
+- [X] deactivate -> Deactivated
 
 - [X] add_step_at -> StepAddedAt
 - [X] delete_step -> StepDeletedAt

@@ -67,6 +67,8 @@ defmodule Peasant.Automation.Handler do
   end
 
   def handle_continue(:activate, automation) do
+    # Process.send(self(), :start_automation, [])
+
     [automation_uuid: automation.uuid]
     |> Event.Activated.new()
     |> notify()
@@ -112,19 +114,28 @@ defmodule Peasant.Automation.Handler do
   def handle_call(_, _from, %{active: true} = automation),
     do: {:reply, {:error, :active_automation_cannot_be_altered}, automation}
 
-  def handle_call({:add_step_at, step, position}, _from, %{steps: steps} = automation) do
+  def handle_call(
+        {:add_step_at, step, position},
+        _from,
+        %{steps: steps, total_steps: total_steps} = automation
+      ) do
     index = get_index(steps, position)
 
     steps = List.insert_at(steps, index, step)
+    total_steps = total_steps + 1
 
     [automation_uuid: automation.uuid, step: step, index: index]
     |> Event.StepAddedAt.new()
     |> notify()
 
-    {:reply, :ok, %{automation | steps: steps}}
+    {:reply, :ok, %{automation | steps: steps, total_steps: total_steps}}
   end
 
-  def handle_call({:delete_step, step_uuid}, _from, %{steps: steps} = automation) do
+  def handle_call(
+        {:delete_step, step_uuid},
+        _from,
+        %{steps: steps, total_steps: total_steps} = automation
+      ) do
     automation =
       case Enum.find_index(steps, &(&1.uuid == step_uuid)) do
         nil ->
@@ -132,12 +143,13 @@ defmodule Peasant.Automation.Handler do
 
         step_index ->
           new_steps = List.delete_at(steps, step_index)
+          total_steps = total_steps - 1
 
           [automation_uuid: automation.uuid, step_uuid: step_uuid]
           |> Event.StepDeleted.new()
           |> notify()
 
-          %{automation | steps: new_steps}
+          %{automation | steps: new_steps, total_steps: total_steps}
       end
 
     {:reply, :ok, automation}
@@ -161,9 +173,12 @@ defmodule Peasant.Automation.Handler do
     end
   end
 
-  def handle_call({:move_step_to, step_uuid, position}, _from, %{steps: steps} = automation) do
+  def handle_call(
+        {:move_step_to, step_uuid, position},
+        _from,
+        %{steps: steps, total_steps: total_steps} = automation
+      ) do
     to_index = get_index(steps, position)
-    steps_count = length(steps)
 
     case Enum.find_index(steps, &(&1.uuid == step_uuid)) do
       nil ->
@@ -171,7 +186,7 @@ defmodule Peasant.Automation.Handler do
 
       step_index
       when step_index == to_index or
-             (step_index == steps_count - 1 and to_index == -1) ->
+             (step_index == total_steps - 1 and to_index == -1) ->
         {:reply, :ok, automation}
 
       step_index ->

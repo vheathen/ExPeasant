@@ -5,8 +5,11 @@ defmodule Peasant.Automation.State do
     field(:name, :string)
     field(:description, :string)
     field(:steps, {:array, :map}, default: [])
+    field(:total_steps, :integer, default: 0, virtual: true)
+    field(:last_step_index, :integer, default: -1)
     field(:active, :boolean, default: false)
     field(:new, :boolean, default: true, virtual: true)
+    field(:timer, :any, virtual: true)
 
     timestamps()
   end

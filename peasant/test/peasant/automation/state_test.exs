@@ -47,14 +47,32 @@ defmodule Peasant.Automation.StateTest do
       assert state.active == false
     end
 
-    test "should have :new field", %{state: state} do
+    test "should have :new virtual field", %{state: state} do
       assert Map.has_key?(state, :new)
       assert state.new == true
+      refute :new in State.__schema__(:fields)
     end
 
     test "should have timestamps", %{state: state} do
       assert Map.has_key?(state, :inserted_at)
       assert Map.has_key?(state, :updated_at)
+    end
+
+    test "should have :total_steps virtual field", %{state: state} do
+      assert Map.has_key?(state, :total_steps)
+      assert state.total_steps == 0
+      refute :total_steps in State.__schema__(:fields)
+    end
+
+    test "should have :last_step_index field", %{state: state} do
+      assert Map.has_key?(state, :last_step_index)
+      assert state.last_step_index == -1
+    end
+
+    test "should have :timer virtual field", %{state: state} do
+      assert Map.has_key?(state, :timer)
+      assert state.timer == nil
+      refute :timer in State.__schema__(:fields)
     end
   end
 end

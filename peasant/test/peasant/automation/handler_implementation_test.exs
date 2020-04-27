@@ -120,8 +120,8 @@ defmodule Peasant.Automation.HandlerImplementationTest do
   describe "add step at" do
     @describetag :unit
 
-    test "should add a given step at the requested position", %{
-      automation: %{uuid: uuid} = automation
+    test "should add a given step at the requested position and increase :total_steps", %{
+      automation: %{uuid: uuid, total_steps: total_steps} = automation
     } do
       # step 1
 
@@ -134,7 +134,8 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, :ok, new_automation} =
                Handler.handle_call({:add_step_at, step1, position}, self(), automation)
 
-      assert %{automation | steps: steps} == new_automation
+      total_steps = total_steps + 1
+      assert %{automation | steps: steps, total_steps: total_steps} == new_automation
 
       assert_receive ^step_added_at
 
@@ -149,7 +150,8 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, :ok, new_automation} =
                Handler.handle_call({:add_step_at, step2, position}, self(), new_automation)
 
-      assert %{automation | steps: steps} == new_automation
+      total_steps = total_steps + 1
+      assert %{automation | steps: steps, total_steps: total_steps} == new_automation
 
       assert_receive ^step_added_at
 
@@ -164,7 +166,8 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, :ok, new_automation} =
                Handler.handle_call({:add_step_at, step3, position}, self(), new_automation)
 
-      assert %{automation | steps: steps} == new_automation
+      total_steps = total_steps + 1
+      assert %{automation | steps: steps, total_steps: total_steps} == new_automation
 
       assert_receive ^step_added_at
 
@@ -180,7 +183,8 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, :ok, new_automation} =
                Handler.handle_call({:add_step_at, step4, position}, self(), new_automation)
 
-      assert %{automation | steps: steps} == new_automation
+      total_steps = total_steps + 1
+      assert %{automation | steps: steps, total_steps: total_steps} == new_automation
 
       assert_receive ^step_added_at
     end
@@ -221,13 +225,16 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       1..10
       |> Enum.reduce(steps, fn _, steps ->
         assert %{uuid: step_uuid} = Enum.random(steps)
+        total_steps = Enum.count(steps)
         step_index = Enum.find_index(steps, &(&1.uuid == step_uuid))
         new_steps = List.delete_at(steps, step_index)
+        new_total_steps = Enum.count(new_steps)
 
-        assert {:reply, :ok, %{automation | steps: new_steps}} ==
+        assert {:reply, :ok, %{automation | steps: new_steps, total_steps: new_total_steps}} ==
                  Handler.handle_call({:delete_step, step_uuid}, self(), %{
                    automation
-                   | steps: steps
+                   | steps: steps,
+                     total_steps: total_steps
                  })
 
         step_deleted =
@@ -418,7 +425,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     } do
       step = new_step_struct()
 
-      automation = %{automation | steps: [step]}
+      automation = %{automation | steps: [step], total_steps: 1}
 
       assert {:reply, :ok, automation} ==
                Handler.handle_call(
@@ -437,7 +444,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       step = new_step_struct()
       other_uuid = UUID.uuid4()
 
-      automation = %{automation | steps: [step]}
+      automation = %{automation | steps: [step], total_steps: 1}
 
       assert {:reply, {:error, :no_such_step_exists}, automation} ==
                Handler.handle_call(
@@ -454,7 +461,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     } do
       step = new_step_struct()
 
-      automation = %{automation | active: true, steps: [step]}
+      automation = %{automation | active: true, steps: [step], total_steps: 1}
 
       assert {:reply, {:error, :active_automation_cannot_be_altered}, automation} ==
                Handler.handle_call(
