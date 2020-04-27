@@ -39,9 +39,9 @@ defmodule Firmware.MixProject do
   defp deps do
     [
       # Dependencies for all targets
-      {:nerves, "~> 1.6.0", runtime: false},
+      {:nerves, "~> 1.6.1", runtime: false},
       {:shoehorn, "~> 0.6"},
-      {:ring_logger, "~> 0.6"},
+      {:ring_logger, "~> 0.8"},
       {:toolshed, "~> 0.2"},
       {:peasant, path: "../peasant"},
 
