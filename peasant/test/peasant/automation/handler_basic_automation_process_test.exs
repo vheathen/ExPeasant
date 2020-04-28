@@ -1,5 +1,5 @@
 defmodule Peasant.Automation.HandlerBasicAutomationProcess do
-  use Peasant.DataCase
+  use Peasant.GeneralCase
 
   alias Peasant.Automation.State
   alias Peasant.Automation.Handler

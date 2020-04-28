@@ -1,5 +1,5 @@
 defmodule Peasant.Automation.State.StepTest do
-  use Peasant.DataCase
+  use Peasant.GeneralCase
 
   alias Peasant.Automation.State.Step
 

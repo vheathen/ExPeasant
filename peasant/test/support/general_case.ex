@@ -3,7 +3,7 @@ defmodule Peasant.GeneralCase do
 
   using do
     quote do
-      use ExUnit.Case
+      use ExUnit.Case, async: false
 
       import Peasant.Helper
       import Peasant.Factory
@@ -12,10 +12,22 @@ defmodule Peasant.GeneralCase do
       import Peasant.TestHelper
 
       setup do
+        {:ok, _} = Application.ensure_all_started(:peasant, :transient)
+
         config = Application.get_all_env(:peasant)
 
         on_exit(fn ->
           Application.put_all_env([{:peasant, config}])
+
+          db = Application.get_env(:peasant, :peasantdb)
+          Application.stop(:peasant)
+
+          case db do
+            nil -> :ok
+            db -> File.rm_rf(db)
+          end
+
+          {:ok, _} = Application.ensure_all_started(:peasant, :transient)
         end)
       end
     end

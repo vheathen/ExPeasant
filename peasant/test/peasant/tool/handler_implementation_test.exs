@@ -1,5 +1,5 @@
 defmodule Peasant.Tool.HandlerImplementationTest do
-  use Peasant.DataCase
+  use Peasant.GeneralCase
 
   alias Peasant.Tool.Handler
 

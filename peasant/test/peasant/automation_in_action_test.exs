@@ -1,5 +1,5 @@
 defmodule Peasant.AutomationInActionTest do
-  use Peasant.DataCase
+  use Peasant.GeneralCase
 
   alias Peasant.Automation
   alias Peasant.Automation.Event, as: AE
