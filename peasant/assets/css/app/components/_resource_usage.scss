@@ -1,0 +1,79 @@
+// Memory usage visualization
+.resource-usage {
+  .progress {
+    border-radius: 2px;
+    height: 1.5rem;
+    background-color: transparent;
+  }
+
+  .progress-bar {
+    border-color: white;
+    border-style: solid;
+    border-width: 0 1px;
+  }
+
+  .progress-bar:last-child {
+    border-right-width: 0;
+  }
+
+  .progress-bar:first-child {
+    border-left-width: 0;
+  }
+
+  // Legend
+  .resource-usage-legend-color {
+    border-radius: 3px;
+    display: inline-block;
+    height: 16px;
+    width: 16px;
+  }
+
+  .resource-usage-legend-entries-2 {
+    height: 64px;
+  }
+
+  .resource-usage-legend-entries-3 {
+    height: 96px;
+  }
+
+  .resource-usage-legend-entries-4 {
+    height: 128px;
+  }
+
+  .resource-usage-legend-entry-2 {
+    flex-basis: 50%;
+  }
+
+  .resource-usage-legend-entry-3 {
+    flex-basis: 33%;
+  }
+
+  .resource-usage-legend-entry-4 {
+    flex-basis: 25%;
+  }
+
+  .resource-usage-total {
+    background-color: $color-gray-100;
+    color: $color-gray-800;
+  }
+
+  .resource-usage-total-value {
+    color: $text-color
+  }
+}
+
+@media (max-width: map-get($grid-breakpoints, lg)) {
+  .resource-usage {
+    .resource-usage-legend-entries-2,
+    .resource-usage-legend-entries-3,
+    .resource-usage-legend-entries-4 {
+      height: auto;
+    }
+
+    .resource-usage-legend-entry-2,
+    .resource-usage-legend-entry-3,
+    .resource-usage-legend-entry-4 {
+      flex-basis: auto;
+    }
+  }
+}
