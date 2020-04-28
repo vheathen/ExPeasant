@@ -59,4 +59,13 @@ defmodule Peasant.TestHelper do
           message: "Map\n\n#{inspect(right)}\n\nhas different value for the key #{inspect(k)}"
     end)
   end
+
+  def unique_word(word \\ nil), do: new_word(word)
+
+  def new_word(word \\ nil) do
+    case Faker.Lorem.word() do
+      ^word -> new_word(word)
+      new_word -> new_word
+    end
+  end
 end
