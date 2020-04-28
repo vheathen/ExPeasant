@@ -1,16 +1,14 @@
 defmodule Peasant.Automation.HandlerImplementationTest do
-  use Peasant.DataCase
+  use Peasant.GeneralCase
 
   alias Peasant.Automation.State
   alias Peasant.Automation.State.Step
   alias Peasant.Automation.Handler
   alias Peasant.Automation.Event
 
-  # alias Peasant.Automations.FakeAutomation
-  # alias Peasant.Automation.Action
-
   setup do
     Peasant.subscribe("automations")
+    :ok = GenServer.stop(Peasant.Storage.Observer, :normal)
     :ok
   end
 
@@ -127,7 +125,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
 
     test "with {:continue, :deactivated} should stop and nilify timer and timer_ref",
          %{automation_created: %{automation: automation}} do
-      timer = Process.send_after(self(), :okk, 1_000)
+      timer = Process.send_after(self(), :ok, 1_000)
       timer_ref = UUID.uuid4()
 
       automation = %{
