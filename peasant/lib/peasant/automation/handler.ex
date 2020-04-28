@@ -58,9 +58,11 @@ defmodule Peasant.Automation.Handler do
   # Implementation
   #
 
-  def init(%State{new: true} = automation) do
-    {:ok, %{automation | new: false}, {:continue, :created}}
-  end
+  def init(%State{new: true} = automation),
+    do: {:ok, %{automation | new: false}, {:continue, :created}}
+
+  def init(%State{} = automation),
+    do: {:ok, automation, {:continue, :loaded}}
 
   def handle_continue(:created, automation) do
     [automation_uuid: automation.uuid, automation: automation]
@@ -68,6 +70,40 @@ defmodule Peasant.Automation.Handler do
     |> notify()
 
     {:noreply, automation}
+  end
+
+  def handle_continue(
+        :loaded,
+        automation
+      ) do
+    [automation_uuid: automation.uuid, automation: automation]
+    |> Peasant.Automation.Event.Loaded.new()
+    |> notify()
+
+    {:noreply, automation, {:continue, :maybe_activate}}
+  end
+
+  def handle_continue(
+        :maybe_activate,
+        %{active: false} = automation
+      ),
+      do: {:noreply, automation}
+
+  def handle_continue(
+        :maybe_activate,
+        %{active: true} = automation
+      ),
+      do: {:noreply, automation, {:continue, :activated}}
+
+  def handle_continue(
+        :activated,
+        automation
+      ) do
+    [automation_uuid: automation.uuid]
+    |> Event.Activated.new()
+    |> notify()
+
+    {:noreply, %{automation | last_step_index: -1}, {:continue, :next_step}}
   end
 
   def handle_continue(
@@ -220,13 +256,8 @@ defmodule Peasant.Automation.Handler do
   def handle_call(:activate, _from, %{active: true} = automation),
     do: {:reply, :ok, automation}
 
-  def handle_call(:activate, _from, automation) do
-    [automation_uuid: automation.uuid]
-    |> Event.Activated.new()
-    |> notify()
-
-    {:reply, :ok, %{automation | active: true, last_step_index: -1}, {:continue, :next_step}}
-  end
+  def handle_call(:activate, _from, automation),
+    do: {:reply, :ok, %{automation | active: true}, {:continue, :activated}}
 
   def handle_call(:deactivate, _from, %{active: false} = automation),
     do: {:reply, :ok, automation}

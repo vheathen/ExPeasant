@@ -32,6 +32,46 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     end
   end
 
+  describe "loading process" do
+    @describetag :unit
+
+    test "init(%{new: false} = automation) should return {:ok, automation, {:continue, :loaded}}",
+         %{
+           automation: automation
+         } do
+      automation = %{automation | new: false}
+      assert {:ok, automation, {:continue, :loaded}} == Handler.init(automation)
+    end
+
+    test "should notify that automation loaded and try to activate", %{automation: automation} do
+      assert {:noreply, automation, {:continue, :maybe_activate}} ==
+               Handler.handle_continue(:loaded, automation)
+
+      event =
+        [automation_uuid: automation.uuid, automation: automation]
+        |> Event.Loaded.new()
+
+      assert_receive ^event
+    end
+
+    test "should return {:noreply, automation, {:continue, :activated}} if automation :active is true",
+         %{automation: automation} do
+      automation = %{automation | active: true}
+
+      assert {:noreply, automation, {:continue, :activated}} ==
+               Handler.handle_continue(:maybe_activate, automation)
+    end
+
+    test "should return {:noreply, automation} if automation :active is false", %{
+      automation: automation
+    } do
+      automation = %{automation | active: false}
+
+      assert {:noreply, automation} ==
+               Handler.handle_continue(:maybe_activate, automation)
+    end
+  end
+
   describe "rename" do
     @describetag :unit
 
@@ -67,14 +107,25 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       refute_receive _
     end
 
-    test "should activate automation, reset :last_step_index to -1, reply :ok and {:continue, :next_step}",
+    test "should set automation :active to true and return {:reply, :ok, {:continue, :activate}}",
          %{automation_created: %{automation: automation}} do
       assert {
                :reply,
                :ok,
-               %{automation | active: true, last_step_index: -1},
+               %{automation | active: true},
+               {:continue, :activated}
+             } == Handler.handle_call(:activate, self(), automation)
+
+      refute_receive _
+    end
+
+    test "should reset :last_step_index to -1 and continue with :next_step ",
+         %{automation_created: %{automation: automation}} do
+      assert {
+               :noreply,
+               %{automation | last_step_index: -1},
                {:continue, :next_step}
-             } == Handler.handle_call(:activate, self(), %{automation | last_step_index: 5})
+             } == Handler.handle_continue(:activated, %{automation | last_step_index: 5})
 
       event = Event.Activated.new(automation_uuid: automation.uuid)
 
@@ -644,12 +695,5 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     automation = new_automation() |> State.new()
 
     [automation: automation]
-  end
-
-  def new_word(word \\ nil) do
-    case Faker.Lorem.word() do
-      ^word -> new_word(word)
-      new_word -> new_word
-    end
   end
 end
