@@ -103,7 +103,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       refute_receive _
     end
 
-    test "with {:continue, :deactivated} should fire a Deactivated event and return {:continue, :finish_step}",
+    test "with {:continue, :deactivated} should fire a Deactivated event",
          %{automation_created: %{automation: automation}} do
       automation = %{automation | steps: [new_step_struct()], last_step_index: 0}
 
