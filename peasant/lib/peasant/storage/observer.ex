@@ -16,6 +16,8 @@ defmodule Peasant.Storage.Observer do
 
   def list(domain), do: GenServer.call(__MODULE__, {:list, domain})
 
+  def get(id, domain), do: GenServer.call(__MODULE__, {:get, id, domain})
+
   def clear, do: GenServer.call(__MODULE__, :clear)
 
   def start_link(_) do
@@ -73,13 +75,14 @@ defmodule Peasant.Storage.Observer do
     {:noreply, collection}
   end
 
-  def handle_call({:list, domain}, _from, collection) do
-    {:reply, collection[domain] |> Map.values(), collection}
-  end
+  def handle_call({:list, domain}, _from, collection),
+    do: {:reply, collection[domain] |> Map.values(), collection}
 
-  def handle_call(:clear, _from, _collection) do
-    {:reply, :ok, @default_state}
-  end
+  def handle_call({:get, id, domain}, _from, collection),
+    do: {:reply, get_in(collection, [domain, id]), collection}
+
+  def handle_call(:clear, _from, _collection),
+    do: {:reply, :ok, @default_state}
 
   ######################### ############
   ######################### Tools domain

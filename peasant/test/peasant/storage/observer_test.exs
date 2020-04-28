@@ -431,6 +431,25 @@ defmodule Peasant.Storage.ObserverTest do
     end
   end
 
+  describe "get(id, domain) function" do
+    @describetag :integration
+
+    setup :list_setup
+
+    test "should return an object with a given id from a specified domain", %{
+      tools: tools,
+      automations: automations
+    } do
+      Enum.each(tools, fn %{uuid: uuid} = tool ->
+        assert tool == Observer.get(uuid, @tools) |> nilify_timestamps()
+      end)
+
+      Enum.each(automations, fn %{uuid: uuid} = automation ->
+        assert automation == Observer.get(uuid, @automations) |> nilify_timestamps()
+      end)
+    end
+  end
+
   describe "clear/0" do
     @describetag :integration
 
