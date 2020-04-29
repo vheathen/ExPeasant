@@ -9,6 +9,7 @@ defmodule Peasant.Application do
     children = [
       # Start the Telemetry supervisor
       PeasantWeb.Telemetry,
+
       # Start the PubSub system
       {Phoenix.PubSub, name: Peasant.PubSub},
 
@@ -21,11 +22,8 @@ defmodule Peasant.Application do
       # ActivityMaster: automations supervisor
       Peasant.ActivityMaster,
 
-      # Storage Repo
-      Peasant.Storage.Keeper,
-
-      # Storage Observer
-      Peasant.Storage.Observer,
+      # Storage supervisor
+      Peasant.Storage.Supervisor,
 
       # Start the Endpoint (http/https)
       PeasantWeb.Endpoint
