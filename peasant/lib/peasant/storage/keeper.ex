@@ -1,7 +1,29 @@
 defmodule Peasant.Storage.Keeper do
-  use GenServer
+  @moduledoc false
 
-  def db, do: GenServer.call(__MODULE__, :db)
+  @spec child_spec(list()) :: Supervisor.child_spec()
+  def child_spec(_ \\ []) do
+    cubdb =
+      Application.get_env(:peasant, :peasantdb) ||
+        raise "no database configuration!"
+
+    %{
+      id: __MODULE__,
+      start: {
+        CubDB,
+        :start_link,
+        [
+          [
+            data_dir: cubdb,
+            auto_compact: true,
+            name: __MODULE__
+          ]
+        ]
+      }
+    }
+  end
+
+  def db, do: __MODULE__
 
   def persist(%type{} = record, domain) do
     [pk] = type.__schema__(:primary_key)
@@ -43,22 +65,5 @@ defmodule Peasant.Storage.Keeper do
       {domain, %type{}} -> CubDB.delete_multi(db, [{domain, type, id}, id])
       _ -> :ok
     end
-  end
-
-  #### Internals
-
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
-  end
-
-  def init(_) do
-    cubdb = Application.get_env(:peasant, :peasantdb) || raise "no database configuration!"
-    {:ok, db} = CubDB.start_link(data_dir: cubdb, auto_compact: true)
-
-    {:ok, db}
-  end
-
-  def handle_call(:db, _from, db) do
-    {:reply, db, db}
   end
 end
