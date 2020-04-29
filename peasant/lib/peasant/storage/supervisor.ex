@@ -14,15 +14,23 @@ defmodule Peasant.Storage.Supervisor do
 
   def children,
     do: [
-      # Cachex collection store: TODO
-      # %{
-      #   id: Peasant.Tools,
-      #   start: {Cachex, :start_link, [Peasant.Tools, []]}
-      # },
-      # %{
-      #   id: Peasant.Automations,
-      #   start: {Cachex, :start_link, [Peasant.Automations, []]}
-      # },
+      # Cachex collection store
+      %{
+        id: Peasant.Tools,
+        start: {Cachex, :start_link, [:tools, []]}
+      },
+      %{
+        id: Peasant.Automations,
+        start: {Cachex, :start_link, [:automations, []]}
+      },
+      %{
+        id: Peasant.ToolTypeToAutomations,
+        start: {Cachex, :start_link, [:tta, []]}
+      },
+      %{
+        id: Peasant.AutomationToTools,
+        start: {Cachex, :start_link, [:att, []]}
+      },
 
       # Storage Adapter
       Peasant.Storage.Keeper,

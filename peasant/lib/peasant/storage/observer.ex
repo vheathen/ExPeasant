@@ -6,19 +6,26 @@ defmodule Peasant.Storage.Observer do
   alias Peasant.Tool.Event, as: Tool
   alias Peasant.Automation.Event, as: Automation
 
+  alias Peasant.Repo
+
+  require Logger
+
   @tools "tools"
   @automations "automations"
+
+  @tool_to_actions :tta
+  @action_to_tools :att
 
   @default_state %{
     @tools => %{},
     @automations => %{}
   }
 
-  def list(domain), do: GenServer.call(__MODULE__, {:list, domain})
+  def list(domain), do: Repo.list(domain)
 
-  def get(id, domain), do: GenServer.call(__MODULE__, {:get, id, domain})
+  def get(id, domain), do: Repo.get(id, domain)
 
-  def clear, do: GenServer.call(__MODULE__, :clear)
+  def clear(domain), do: Repo.clear(domain)
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
@@ -32,53 +39,23 @@ defmodule Peasant.Storage.Observer do
   end
 
   def handle_continue(:load, collection) do
-    collection =
-      Keeper.get_all()
-      |> Enum.reduce(collection, fn
-        {_key, {domain, record}}, objs ->
-          update_in(objs, [domain, record.uuid], fn _ -> record end)
-
-        _, objs ->
-          objs
-      end)
+    for domain <- [@tools, @automations] do
+      for record <- Repo.list(domain) do
+        Repo.put(record, record.uuid, domain)
+      end
+    end
 
     {:noreply, collection, {:continue, :populate}}
   end
 
   def handle_continue(:populate, collection) do
-    require Logger
+    for tool <- Repo.list(@tools) do
+      Peasant.Tool.Handler.register(tool)
+    end
 
-    collection
-    |> Enum.reduce([], fn
-      {domain, records}, flat_list ->
-        Enum.reduce(
-          records,
-          flat_list,
-          fn
-            {_, tool}, automations when domain == @tools ->
-              # register tools first
-              Peasant.Tool.Handler.register(tool)
-
-              automations
-
-            {_, automation}, automations when domain == @automations ->
-              [automation | automations]
-
-            some, automations ->
-              Logger.warn(inspect(some))
-
-              automations
-          end
-        )
-
-      some, flat_list ->
-        Logger.warn(inspect(some))
-
-        flat_list
-    end)
-    |> Enum.reverse()
-    # and Automations next
-    |> Enum.each(&Peasant.Automation.Handler.create/1)
+    for automation <- Repo.list(@automations) do
+      Peasant.Automation.Handler.create(automation)
+    end
 
     {:noreply, collection}
   end
@@ -97,15 +74,14 @@ defmodule Peasant.Storage.Observer do
   #########################
 
   def handle_info(%Tool.Registered{details: %{tool: tool}}, collection) do
-    collection = maybe_persist(tool, tool.uuid, @tools, collection)
+    maybe_persist(tool, tool.uuid, @tools, collection)
 
     {:noreply, collection}
   end
 
-  def handle_info(%Tool.Attached{tool_uuid: uuid}, %{@tools => tools} = collection) do
-    collection =
-      %{Map.get(tools, uuid) | attached: true}
-      |> maybe_persist(uuid, @tools, collection)
+  def handle_info(%Tool.Attached{tool_uuid: uuid}, collection) do
+    %{Repo.get(uuid, @tools) | attached: true}
+    |> maybe_persist(uuid, @tools, collection)
 
     {:noreply, collection}
   end
@@ -119,126 +95,117 @@ defmodule Peasant.Storage.Observer do
   #########################
 
   def handle_info(%Automation.Created{automation: automation}, collection) do
-    collection = maybe_persist(automation, automation.uuid, @automations, collection)
+    maybe_persist(automation, automation.uuid, @automations, collection)
 
     {:noreply, collection}
   end
 
   def handle_info(
         %Automation.Activated{automation_uuid: uuid},
-        %{@automations => automations} = collection
+        collection
       ) do
-    collection =
-      %{Map.get(automations, uuid) | active: true}
-      |> maybe_persist(uuid, @automations, collection)
+    %{Repo.get(uuid, @automations) | active: true}
+    |> maybe_persist(uuid, @automations, collection)
 
     {:noreply, collection}
   end
 
   def handle_info(
         %Automation.Deactivated{automation_uuid: uuid},
-        %{@automations => automations} = collection
+        collection
       ) do
-    collection =
-      %{Map.get(automations, uuid) | active: false}
-      |> maybe_persist(uuid, @automations, collection)
+    %{Repo.get(uuid, @automations) | active: false}
+    |> maybe_persist(uuid, @automations, collection)
 
     {:noreply, collection}
   end
 
   def handle_info(
         %Automation.Renamed{automation_uuid: uuid, name: name},
-        %{@automations => automations} = collection
+        collection
       ) do
-    collection =
-      %{Map.get(automations, uuid) | name: name}
-      |> maybe_persist(uuid, @automations, collection)
+    %{Repo.get(uuid, @automations) | name: name}
+    |> maybe_persist(uuid, @automations, collection)
 
     {:noreply, collection}
   end
 
   def handle_info(
         %Automation.StepAddedAt{automation_uuid: uuid, step: step, index: index},
-        %{@automations => automations} = collection
+        collection
       ) do
-    collection =
-      automations
-      |> Map.get(uuid)
-      |> update_steps(&List.insert_at(&1, index, step))
-      |> maybe_persist(uuid, @automations, collection)
+    uuid
+    |> Repo.get(@automations)
+    |> update_steps(&List.insert_at(&1, index, step))
+    |> maybe_persist(uuid, @automations, collection)
 
     {:noreply, collection}
   end
 
   def handle_info(
         %Automation.StepActivated{automation_uuid: uuid, step_uuid: step_uuid},
-        %{@automations => automations} = collection
+        collection
       ) do
-    collection =
-      automations
-      |> Map.get(uuid)
-      |> update_steps(&update_step(&1, step_uuid, fn step -> %{step | active: true} end))
-      |> maybe_persist(uuid, @automations, collection)
+    uuid
+    |> Repo.get(@automations)
+    |> update_steps(&update_step(&1, step_uuid, fn step -> %{step | active: true} end))
+    |> maybe_persist(uuid, @automations, collection)
 
     {:noreply, collection}
   end
 
   def handle_info(
         %Automation.StepDeactivated{automation_uuid: uuid, step_uuid: step_uuid},
-        %{@automations => automations} = collection
+        collection
       ) do
-    collection =
-      automations
-      |> Map.get(uuid)
-      |> update_steps(&update_step(&1, step_uuid, fn step -> %{step | active: false} end))
-      |> maybe_persist(uuid, @automations, collection)
+    uuid
+    |> Repo.get(@automations)
+    |> update_steps(&update_step(&1, step_uuid, fn step -> %{step | active: false} end))
+    |> maybe_persist(uuid, @automations, collection)
 
     {:noreply, collection}
   end
 
   def handle_info(
         %Automation.StepDeleted{automation_uuid: uuid, step_uuid: step_uuid},
-        %{@automations => automations} = collection
+        collection
       ) do
-    collection =
-      automations
-      |> Map.get(uuid)
-      |> update_steps(
-        &List.delete_at(&1, Enum.find_index(&1, fn step -> step.uuid == step_uuid end))
-      )
-      |> maybe_persist(uuid, @automations, collection)
+    uuid
+    |> Repo.get(@automations)
+    |> update_steps(
+      &List.delete_at(&1, Enum.find_index(&1, fn step -> step.uuid == step_uuid end))
+    )
+    |> maybe_persist(uuid, @automations, collection)
 
     {:noreply, collection}
   end
 
   def handle_info(
         %Automation.StepRenamed{automation_uuid: uuid, step_uuid: step_uuid, name: name},
-        %{@automations => automations} = collection
+        collection
       ) do
-    collection =
-      automations
-      |> Map.get(uuid)
-      |> update_steps(&update_step(&1, step_uuid, fn step -> %{step | name: name} end))
-      |> maybe_persist(uuid, @automations, collection)
+    uuid
+    |> Repo.get(@automations)
+    |> update_steps(&update_step(&1, step_uuid, fn step -> %{step | name: name} end))
+    |> maybe_persist(uuid, @automations, collection)
 
     {:noreply, collection}
   end
 
   def handle_info(
         %Automation.StepMovedTo{automation_uuid: uuid, step_uuid: step_uuid, index: index},
-        %{@automations => automations} = collection
+        collection
       ) do
-    collection =
-      automations
-      |> Map.get(uuid)
-      |> update_steps(fn steps ->
-        step = Enum.find(steps, &(&1.uuid == step_uuid))
+    uuid
+    |> Repo.get(@automations)
+    |> update_steps(fn steps ->
+      step = Enum.find(steps, &(&1.uuid == step_uuid))
 
-        steps
-        |> List.delete(step)
-        |> List.insert_at(index, step)
-      end)
-      |> maybe_persist(uuid, @automations, collection)
+      steps
+      |> List.delete(step)
+      |> List.insert_at(index, step)
+    end)
+    |> maybe_persist(uuid, @automations, collection)
 
     {:noreply, collection}
   end
@@ -251,6 +218,14 @@ defmodule Peasant.Storage.Observer do
   def handle_info(_, collection), do: {:noreply, collection}
 
   defp maybe_persist(entity, entity_id, domain, collection) do
+    entity_id
+    |> Repo.get(domain)
+    |> case do
+      {:error, _} = error -> raise "Something happened with repo: #{inspect(error)}"
+      ^entity -> :ok
+      _ -> Repo.put(entity, entity_id, domain)
+    end
+
     collection
     |> Map.get(domain)
     |> Map.get(entity_id)
@@ -259,7 +234,7 @@ defmodule Peasant.Storage.Observer do
         collection
 
       _ ->
-        entity = Keeper.persist(entity, domain)
+        entity = Repo.get(entity_id, domain)
         update_in(collection, [domain, entity_id], fn _ -> entity end)
     end
   end

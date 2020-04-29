@@ -450,12 +450,14 @@ defmodule Peasant.Storage.ObserverTest do
     end
   end
 
-  describe "clear/0" do
+  describe "clear/1" do
     @describetag :integration
 
-    test "should clear all records" do
-      :ok = Observer.clear()
+    test "should clear all records on domain" do
+      :ok = Observer.clear(@tools)
       assert [] == Observer.list(@tools)
+
+      :ok = Observer.clear(@automations)
       assert [] == Observer.list(@automations)
     end
   end
