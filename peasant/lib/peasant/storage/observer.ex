@@ -1,7 +1,7 @@
 defmodule Peasant.Storage.Observer do
   use GenServer, restart: :transient
 
-  alias Peasant.Repo
+  alias Peasant.Storage.Keeper
 
   alias Peasant.Tool.Event, as: Tool
   alias Peasant.Automation.Event, as: Automation
@@ -33,7 +33,7 @@ defmodule Peasant.Storage.Observer do
 
   def handle_continue(:load, collection) do
     collection =
-      Repo.get_all()
+      Keeper.get_all()
       |> Enum.reduce(collection, fn
         {_key, {domain, record}}, objs ->
           update_in(objs, [domain, record.uuid], fn _ -> record end)
@@ -251,7 +251,7 @@ defmodule Peasant.Storage.Observer do
         collection
 
       _ ->
-        entity = Repo.persist(entity, domain)
+        entity = Keeper.persist(entity, domain)
         update_in(collection, [domain, entity_id], fn _ -> entity end)
     end
   end

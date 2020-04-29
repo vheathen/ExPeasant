@@ -1,4 +1,4 @@
-defmodule Peasant.Repo do
+defmodule Peasant.Storage.Keeper do
   use GenServer
 
   def db, do: GenServer.call(__MODULE__, :db)

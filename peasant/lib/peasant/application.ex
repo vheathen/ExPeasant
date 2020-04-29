@@ -22,7 +22,7 @@ defmodule Peasant.Application do
       Peasant.ActivityMaster,
 
       # Storage Repo
-      Peasant.Repo,
+      Peasant.Storage.Keeper,
 
       # Storage Observer
       Peasant.Storage.Observer,

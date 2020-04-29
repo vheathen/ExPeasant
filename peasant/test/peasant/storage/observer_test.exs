@@ -1,7 +1,7 @@
 defmodule Peasant.Storage.ObserverTest do
   use Peasant.GeneralCase
 
-  alias Peasant.Repo
+  alias Peasant.Storage.Keeper
 
   alias Peasant.Tools.FakeTool
 
@@ -21,7 +21,7 @@ defmodule Peasant.Storage.ObserverTest do
 
     assert is_pid(GenServer.whereis(@observer))
 
-    [db: Repo.db()]
+    [db: Keeper.db()]
   end
 
   describe "Observer" do
