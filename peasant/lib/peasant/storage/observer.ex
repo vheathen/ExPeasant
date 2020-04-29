@@ -46,31 +46,39 @@ defmodule Peasant.Storage.Observer do
   end
 
   def handle_continue(:populate, collection) do
+    require Logger
+
     collection
-    |> Enum.to_list()
     |> Enum.reduce([], fn
       {domain, records}, flat_list ->
         Enum.reduce(
           records,
           flat_list,
-          fn {_, record}, list -> [{domain, record} | list] end
+          fn
+            {_, tool}, automations when domain == @tools ->
+              # register tools first
+              Peasant.Tool.Handler.register(tool)
+
+              automations
+
+            {_, automation}, automations when domain == @automations ->
+              [automation | automations]
+
+            some, automations ->
+              Logger.warn(inspect(some))
+
+              automations
+          end
         )
 
-      _, flat_list ->
+      some, flat_list ->
+        Logger.warn(inspect(some))
+
         flat_list
     end)
-    |> Enum.each(fn
-      {@tools, %{uuid: _} = record} ->
-        Peasant.Tool.Handler.register(record)
-
-      {@automations, %{uuid: _} = record} ->
-        Peasant.Automation.Handler.create(record)
-
-      some ->
-        require Logger
-        Logger.warn(inspect(some))
-        :ok
-    end)
+    |> Enum.reverse()
+    # and Automations next
+    |> Enum.each(&Peasant.Automation.Handler.create/1)
 
     {:noreply, collection}
   end
