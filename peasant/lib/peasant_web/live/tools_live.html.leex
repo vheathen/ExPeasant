@@ -1,0 +1,78 @@
+<div class="tabular-page tools">
+  <h5 class="card-title">Tools</h5>
+
+  <!--
+      <div class="tabular-search">
+        <form phx-change="search" phx-submit="search" class="form-inline">
+          <div class="form-row align-items-center">
+            <div class="col-auto">
+              <input type="search" name="search" class="form-control form-control-sm" value="<%= # @params.search %>" placeholder="Search by local or foreign address" phx-debounce="300">
+            </div>
+          </div>
+        </form>
+      </div>
+-->
+
+  <form phx-change="select_limit" class="form-inline">
+    <div class="form-row align-items-center">
+      <div class="col-auto">Showing at most</div>
+      <div class="col-auto">
+        <div class="input-group input-group-sm">
+          <select name="limit" class="custom-select" id="limit-select">
+            <%= options_for_select(limit_options(), @params.limit) %>
+          </select>
+        </div>
+      </div>
+      <div class="col-auto">
+        tools out of <%= @total %>
+      </div>
+    </div>
+  </form>
+
+  <%= if false do # @port do %>
+    <%= live_modal @socket, SocketInfoComponent,
+          port: @port,
+          title: inspect(@port),
+          return_to: self_path(@socket, @menu.node, @params),
+          live_dashboard_path: &live_dashboard_path(@socket, &1, &2, &3, @params) %>
+  <% end %>
+
+  <div class="card tabular-card mb-4 mt-4">
+    <div class="card-body p-0">
+      <div class="dash-table-wrapper">
+        <table class="table table-hover mt-0 dash-table clickable-rows">
+          <thead>
+            <tr>
+              <th>
+                <%= sort_link(@socket, @live_action, @params, :attached, "Attached") %>
+              </th>
+              <th>
+                <%= sort_link(@socket, @live_action, @params, :name, "Name") %>
+              </th>
+              <th>
+                <%= sort_link(@socket, @live_action, @params, :placement, "Placement") %>
+              </th>
+              <th>
+                <%= sort_link(@socket, @live_action, @params, :__struct__, "Type") %>
+              </th>
+              <th>UUID</th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for tool <- @tools do %>
+              <tr>
+                <td class="tabular-column-name pl-4">
+                  <div class="tool-status-color bg-<%= attached_color(tool.attached) %> mr-2"></div>
+                </td>
+                <td class="tabular-column-name pl-4"><%= tool.name %></td>
+                <td><%= tool.placement %></td>
+                <td><%= shrink_tool_type(tool.__struct__) %></td>
+                <td><%= tool.uuid %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

@@ -17,7 +17,8 @@ defmodule PeasantWeb.Router do
   scope "/", PeasantWeb do
     pipe_through :browser
 
-    live "/", PageLive, :index
+    live "/", HomeLive, :home, as: :live_peasant
+    live "/tools", ToolsLive, :tools, as: :live_peasant
   end
 
   # Other scopes may use custom stacks.
