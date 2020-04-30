@@ -4,7 +4,13 @@ defmodule Peasant.Tools do
   @tool_to_actions "tta"
   @action_to_tools "att"
 
+  @tools Peasant.Tool.domain()
+
   def actions do
     Repo.list_full(@action_to_tools)
+  end
+
+  def list do
+    Repo.list(@tools)
   end
 end
