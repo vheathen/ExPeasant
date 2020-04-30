@@ -6,10 +6,11 @@ defmodule Peasant.Automation.HandlerImplementationTest do
   alias Peasant.Automation.Handler
   alias Peasant.Automation.Event
 
+  @automations Peasant.Automation.domain()
+
   setup do
-    Peasant.subscribe("automations")
-    :ok = GenServer.stop(Peasant.Storage.Observer, :normal)
-    :ok
+    Peasant.subscribe(@automations)
+    GenServer.stop(Peasant.Collection.Observer.Automations)
   end
 
   setup [:automation_setup, :created_setup]

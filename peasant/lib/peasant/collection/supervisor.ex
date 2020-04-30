@@ -1,4 +1,4 @@
-defmodule Peasant.Storage.Supervisor do
+defmodule Peasant.Collection.Supervisor do
   use Supervisor
 
   def start_link(opts \\ []) do
@@ -17,11 +17,11 @@ defmodule Peasant.Storage.Supervisor do
       # Cachex collection store
       %{
         id: Peasant.Tools,
-        start: {Cachex, :start_link, [:tools, []]}
+        start: {Cachex, :start_link, [Peasant.Tool.domain() |> String.to_atom(), []]}
       },
       %{
         id: Peasant.Automations,
-        start: {Cachex, :start_link, [:automations, []]}
+        start: {Cachex, :start_link, [Peasant.Automation.domain() |> String.to_atom(), []]}
       },
       %{
         id: Peasant.ToolTypeToAutomations,
@@ -32,10 +32,16 @@ defmodule Peasant.Storage.Supervisor do
         start: {Cachex, :start_link, [:att, []]}
       },
 
-      # Storage Adapter
-      Peasant.Storage.Keeper,
+      # Collection Adapter
+      Peasant.Collection.Keeper,
 
-      # Storage Observer
-      Peasant.Storage.Observer
+      # Tools observer
+      Peasant.Collection.Observer.Tools,
+
+      # Tools observer
+      Peasant.Collection.Observer.Automations,
+
+      # Collection Observer
+      Peasant.Collection.Observer
     ]
 end

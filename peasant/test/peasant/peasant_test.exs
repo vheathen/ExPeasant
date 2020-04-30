@@ -16,6 +16,14 @@ defmodule PeasantTest do
     [topic: topic, message: message]
   end
 
+  describe "system_state/0" do
+    @describetag :integration
+
+    test "should return current system state" do
+      assert Peasant.system_state() in [:loading, :ready]
+    end
+  end
+
   describe "subscribe/1" do
     @describetag :integration
 

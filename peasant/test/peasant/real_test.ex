@@ -1,5 +1,5 @@
-Peasant.subscribe("automations")
-Peasant.subscribe("tools")
+Peasant.subscribe(Peasant.Automation.domain())
+Peasant.subscribe(Peasant.Tool.domain())
 
 alias Peasant.Automation
 alias Peasant.Automation.Event, as: AE

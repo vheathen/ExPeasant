@@ -6,9 +6,11 @@ defmodule Peasant.Tool.HandlerImplementationTest do
   alias Peasant.Tools.FakeTool
   alias Peasant.Tool.Action
 
+  @tools Peasant.Tool.domain()
+
   setup do
-    Peasant.subscribe("tools")
-    :ok
+    Peasant.subscribe(@tools)
+    GenServer.stop(Peasant.Collection.Observer.Tools)
   end
 
   setup context do

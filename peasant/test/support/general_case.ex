@@ -11,6 +11,9 @@ defmodule Peasant.GeneralCase do
 
       import Peasant.TestHelper
 
+      @tools Peasant.Tool.domain()
+      @automations Peasant.Automation.domain()
+
       setup do
         {:ok, _} = Application.ensure_all_started(:peasant, :transient)
 

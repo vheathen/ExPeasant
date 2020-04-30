@@ -1,4 +1,4 @@
-defmodule Peasant.Storage.Keeper do
+defmodule Peasant.Collection.Keeper do
   @moduledoc false
 
   @spec child_spec(list()) :: Supervisor.child_spec()

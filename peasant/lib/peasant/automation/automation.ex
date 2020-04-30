@@ -10,6 +10,11 @@ defmodule Peasant.Automation do
 
   @automation_handler_default Peasant.Automation.Handler
 
+  @domain "automations"
+
+  @spec domain() :: term()
+  def domain, do: @domain
+
   @spec create(automation_spec :: map()) ::
           {:ok, Ecto.UUID}
           | {:error, term()}

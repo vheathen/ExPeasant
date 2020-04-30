@@ -50,6 +50,7 @@ defmodule Peasant.MixProject do
       {:ecto, "~> 3.4.0"},
       {:elixir_uuid, "~> 1.2"},
       {:cubdb, "~> 1.0.0-rc.3"},
+      {:cachex, "~> 3.2.0"},
       {:circuits_gpio, "~> 0.4"},
 
       # dev\test deps

@@ -11,6 +11,8 @@ defmodule Peasant do
 
   @pubsub Peasant.PubSub
 
+  def system_state, do: Peasant.Collection.Observer.current_state()
+
   def subscribe(topic), do: PubSub.subscribe(@pubsub, topic)
 
   def broadcast(topic, event), do: PubSub.broadcast(@pubsub, topic, event)

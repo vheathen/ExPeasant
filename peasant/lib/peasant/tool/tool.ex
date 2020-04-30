@@ -9,6 +9,11 @@ defmodule Peasant.Tool do
 
   @tool_handler_default Peasant.Tool.Handler
 
+  @domain "tools"
+
+  @spec domain() :: term()
+  def domain, do: @domain
+
   @spec register(atom(), map()) ::
           {:ok, Ecto.UUID}
           | {:error, term()}

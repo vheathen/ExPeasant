@@ -1,7 +1,7 @@
-defmodule Peasant.Storage.KeeperTest do
+defmodule Peasant.Collection.KeeperTest do
   use Peasant.GeneralCase
 
-  alias Peasant.Storage.Keeper
+  alias Peasant.Collection.Keeper
 
   describe "Keeper" do
     @describetag :unit

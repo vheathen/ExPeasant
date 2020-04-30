@@ -5,8 +5,10 @@ defmodule Peasant.Automation.HandlerBasicAutomationProcess do
   alias Peasant.Automation.Handler
   alias Peasant.Automation.Event
 
+  @automations Peasant.Automation.domain()
+
   setup do
-    Peasant.subscribe("automations")
+    Peasant.subscribe(@automations)
     :ok
   end
 

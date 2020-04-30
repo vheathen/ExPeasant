@@ -12,8 +12,8 @@ defmodule Peasant.AutomationInActionTest do
 
   @time_to_wait 50
 
-  @automations "automations"
-  @tools "tools"
+  @tools Peasant.Tool.domain()
+  @automations Peasant.Automation.domain()
 
   describe "automation scenario" do
     @describetag :integration

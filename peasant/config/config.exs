@@ -15,6 +15,8 @@ config :peasant, PeasantWeb.Endpoint,
   pubsub_server: Peasant.PubSub,
   live_view: [signing_salt: "w5BASwzz"]
 
+config :peasant, Actions, peasant: Peasant.Tool.Action
+
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",

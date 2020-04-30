@@ -1,5 +1,5 @@
 defmodule Peasant.Repo do
-  alias Peasant.Storage.Keeper
+  alias Peasant.Collection.Keeper
 
   def get(id, domain) do
     domain
@@ -11,8 +11,9 @@ defmodule Peasant.Repo do
     end
   end
 
-  def put(record, id, domain, persist \\ true) do
-    record = if persist, do: Keeper.persist(record, domain), else: record
+  def put(record, id, domain, opts \\ []) do
+    record =
+      if Keyword.get(opts, :persist, true), do: Keeper.persist(record, domain), else: record
 
     domain
     |> String.to_existing_atom()
@@ -27,6 +28,14 @@ defmodule Peasant.Repo do
     |> Enum.to_list()
   end
 
+  def list_full(domain) do
+    domain
+    |> String.to_existing_atom()
+    |> Cachex.stream!()
+    |> Stream.map(fn {_, key, _, _, value} -> {key, value} end)
+    |> Enum.into(%{})
+  end
+
   def clear(domain) do
     {:ok, _} =
       domain
@@ -34,5 +43,15 @@ defmodule Peasant.Repo do
       |> Cachex.clear()
 
     :ok
+  end
+
+  def maybe_persist(record, id, domain) do
+    id
+    |> get(domain)
+    |> case do
+      {:error, _} = error -> raise "Something happened with repo: #{inspect(error)}"
+      ^record -> :ok
+      _ -> put(record, id, domain)
+    end
   end
 end

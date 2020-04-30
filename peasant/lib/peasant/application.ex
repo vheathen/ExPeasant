@@ -22,8 +22,8 @@ defmodule Peasant.Application do
       # ActivityMaster: automations supervisor
       Peasant.ActivityMaster,
 
-      # Storage supervisor
-      Peasant.Storage.Supervisor,
+      # Collection supervisor
+      Peasant.Collection.Supervisor,
 
       # Start the Endpoint (http/https)
       PeasantWeb.Endpoint

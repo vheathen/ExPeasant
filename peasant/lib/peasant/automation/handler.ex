@@ -1,7 +1,7 @@
 defmodule Peasant.Automation.Handler do
   use GenServer
 
-  @domain "automations"
+  @automations Peasant.Automation.domain()
 
   @awaiting "awaiting"
   @action "action"
@@ -412,7 +412,7 @@ defmodule Peasant.Automation.Handler do
     do: {:noreply, automation}
 
   defp notify(events) when is_list(events), do: Enum.each(events, &notify/1)
-  defp notify(event), do: Peasant.broadcast(@domain, event)
+  defp notify(event), do: Peasant.broadcast(@automations, event)
 
   defp get_index(_list, :first), do: 0
   defp get_index(_list, :last), do: -1

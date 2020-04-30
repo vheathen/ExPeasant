@@ -7,7 +7,7 @@ defmodule Peasant.Tool.Handler do
 
   alias Peasant.Tool.Action.Attach
 
-  @domain "tools"
+  @tools Peasant.Tool.domain()
 
   ###
   # Internal Public API
@@ -84,7 +84,7 @@ defmodule Peasant.Tool.Handler do
     do: {:reply, {:error, :not_attached}, tool}
 
   defp notify(events) when is_list(events), do: Enum.each(events, &notify/1)
-  defp notify(event), do: Peasant.broadcast(@domain, event)
+  defp notify(event), do: Peasant.broadcast(@tools, event)
 
   defp action_ref, do: UUID.uuid4()
 end
