@@ -6,7 +6,6 @@ defmodule PeasantWeb.ToolsLive do
   import PeasantWeb.TableHelpers
   import PeasantWeb.LiveHelpers
 
-  alias Peasant.Tools
   alias Peasant.Tool.Event, as: Tool
 
   @tools Peasant.Tool.domain()
@@ -58,6 +57,16 @@ defmodule PeasantWeb.ToolsLive do
   def handle_info(%Tool.Registered{}, socket),
     do: {:noreply, fetch_tools(socket)}
 
+  def handle_info(:refresh, socket) do
+    {:noreply, fetch_tools(socket)}
+  end
+
+  @impl true
+  def handle_event("select_limit", %{"limit" => limit}, socket) do
+    %{params: params} = socket.assigns
+    {:noreply, push_patch(socket, to: self_path(socket, %{params | limit: limit}))}
+  end
+
   # @impl true
   # def handle_event("suggest", %{"q" => query}, socket) do
   #   {:noreply, assign(socket, results: search(query), query: query)}
@@ -88,6 +97,10 @@ defmodule PeasantWeb.ToolsLive do
   #       into: %{},
   #       do: {app, vsn}
   # end
+
+  defp self_path(socket, params) do
+    live_peasant_path(socket, :tools, [], params)
+  end
 
   defp attached_color(state), do: @attached_color[state]
 end
