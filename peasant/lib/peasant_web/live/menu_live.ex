@@ -1,11 +1,6 @@
 defmodule PeasantWeb.MenuLive do
   use PeasantWeb, :live_view
 
-  alias PeasantWeb.{
-    HomeLive,
-    ToolsLive
-  }
-
   @impl true
   def mount(_, %{"menu" => menu}, socket) do
     socket = assign(socket, menu: menu)
@@ -19,6 +14,7 @@ defmodule PeasantWeb.MenuLive do
     <nav id="menu-bar">
       <%= maybe_active_live_redirect @socket, @menu, "Home", :home %>
       <%= maybe_active_live_redirect @socket, @menu, "Tools", :tools %>
+      <%= maybe_active_live_redirect @socket, @menu, "Automations", :automations %>
     </nav>
     """
   end

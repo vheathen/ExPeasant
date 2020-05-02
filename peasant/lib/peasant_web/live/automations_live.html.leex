@@ -1,0 +1,84 @@
+<div class="tabular-page automations">
+  <h5 class="card-title">Automations</h5>
+
+  <!--
+      <div class="tabular-search">
+        <form phx-change="search" phx-submit="search" class="form-inline">
+          <div class="form-row align-items-center">
+            <div class="col-auto">
+              <input type="search" name="search" class="form-control form-control-sm" value="<%= # @params.search %>" placeholder="Search by local or foreign address" phx-debounce="300">
+            </div>
+          </div>
+        </form>
+      </div>
+-->
+
+  <form phx-change="select_limit" class="form-inline">
+    <div class="form-row align-items-center">
+      <div class="col-auto">Showing at most</div>
+      <div class="col-auto">
+        <div class="input-group input-group-sm">
+          <select name="limit" class="custom-select" id="limit-select">
+            <%= options_for_select(limit_options(), @params.limit) %>
+          </select>
+        </div>
+      </div>
+      <div class="col-auto">
+        automations out of <%= @total %>
+      </div>
+    </div>
+  </form>
+
+  <%= if false do # @port do %>
+    <%= live_modal @socket, SocketInfoComponent,
+          port: @port,
+          title: inspect(@port),
+          return_to: self_path(@socket, @menu.node, @params),
+          live_dashboard_path: &live_dashboard_path(@socket, &1, &2, &3, @params) %>
+  <% end %>
+
+  <div class="card tabular-card mb-4 mt-4">
+    <div class="card-body p-0">
+      <div class="dash-table-wrapper">
+        <table class="table table-hover mt-0 dash-table clickable-rows">
+          <thead>
+            <tr>
+              <th>
+                <%= sort_link(@socket, @live_action, @params, :attached, "Active") %>
+              </th>
+              <th>
+                <%= sort_link(@socket, @live_action, @params, :name, "Name") %>
+              </th>
+              <th>
+                Description
+              </th>
+              <th>
+                Steps
+              </th>
+              <th>
+                UUID
+              </th>
+              <th>
+                <%= sort_link(@socket, @live_action, @params, :updated_at, "Updated") %>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for a <- @automations do %>
+              <tr>
+                <td class="tabular-column-name pl-4">
+                  <div class="automation-status-color bg-<%= active_color(a.active) %> mr-2"></div>
+                </td>
+                <td class="tabular-column-name pl-4"><%= a.name %></td>
+                <td><%= a.description %></td>
+                <td><%= a.total_steps %></td>
+                <td><%= a.uuid %></td>
+                <td><%= format_timestamp(a.updated_at) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

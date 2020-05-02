@@ -1,0 +1,31 @@
+// Memory usage visualization
+.automations {
+  .progress {
+    border-radius: 2px;
+    height: 1.5rem;
+    background-color: transparent;
+  }
+
+  .progress-bar {
+    border-color: white;
+    border-style: solid;
+    border-width: 0 1px;
+  }
+
+  .progress-bar:last-child {
+    border-right-width: 0;
+  }
+
+  .progress-bar:first-child {
+    border-left-width: 0;
+  }
+
+  // Legend
+  .automation-status-color {
+    border-radius: 3px;
+    display: inline-block;
+    height: 16px;
+    width: 16px;
+  }
+}
+
