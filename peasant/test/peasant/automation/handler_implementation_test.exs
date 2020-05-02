@@ -1,6 +1,8 @@
 defmodule Peasant.Automation.HandlerImplementationTest do
   use Peasant.GeneralCase
 
+  import Peasant.Collection.TestHelper
+
   alias Peasant.Automation.State
   alias Peasant.Automation.State.Step
   alias Peasant.Automation.Handler
@@ -10,17 +12,43 @@ defmodule Peasant.Automation.HandlerImplementationTest do
 
   setup do
     Peasant.subscribe(@automations)
-    GenServer.stop(Peasant.Collection.Observer.Automations)
+    # GenServer.stop(Peasant.Collection.Observer.Automations)
   end
 
   setup [:automation_setup, :created_setup]
 
+  describe "persist" do
+    @describetag :unit
+
+    test "should persist current state and continue with the given next action",
+         %{automation: automation} do
+      assert {:noreply, stored_automation, {:continue, :created}} =
+               Handler.handle_continue({:persist, :created}, automation)
+
+      assert automation == stored_automation |> nilify_timestamps()
+
+      assert stored_automation == Peasant.Repo.get(automation.uuid, @automations)
+      assert stored_automation == Peasant.Collection.Keeper.get_by_id(automation.uuid)
+    end
+
+    test "should persist current state and stop if no next_action or it is nil",
+         %{automation: automation} do
+      assert {:noreply, stored_automation} = Handler.handle_continue(:persist, automation)
+
+      assert automation == stored_automation |> nilify_timestamps()
+
+      assert stored_automation == Peasant.Repo.get(automation.uuid, @automations)
+      assert stored_automation == Peasant.Collection.Keeper.get_by_id(automation.uuid)
+    end
+  end
+
   describe "creation process" do
     @describetag :unit
 
-    test "init(%{new: true} = automation) should return %{new: false} = automation as a state and {:continue, :created}",
+    test "init(%{new: true} = automation) should return {:ok, %{automation | new: false}, {:continue, {:persist, :created}}}",
          %{automation: automation} do
-      assert {:ok, %{automation | new: false}, {:continue, :created}} == Handler.init(automation)
+      assert {:ok, %{automation | new: false}, {:continue, {:persist, :created}}} ==
+               Handler.init(automation)
     end
 
     test "should notify about automation creation", %{
@@ -73,27 +101,34 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     end
   end
 
-  describe "rename" do
+  describe "rename: " do
     @describetag :unit
 
-    test "should rename automation, reply :ok and fire Renamed event",
+    test "handle_call({:rename, new_name}, automation) should return {:reply, :ok, %{automation | name: new_name}, {:continue, {:persist, :renamed}}}",
          %{automation_created: %{automation: automation}} do
       new_name = Faker.Lorem.word()
 
-      assert {:reply, :ok, %{automation | name: new_name}} ==
+      assert {:reply, :ok, %{automation | name: new_name}, {:continue, {:persist, :renamed}}} ==
                Handler.handle_call({:rename, new_name}, self(), automation)
 
-      renamed = Event.Renamed.new(automation_uuid: automation.uuid, name: new_name)
+      refute_receive _, 10
+    end
+
+    test "handle_continue(:renamed, automation)",
+         %{automation_created: %{automation: automation}} do
+      assert {:noreply, automation} = Handler.handle_continue(:renamed, automation)
+
+      renamed = Event.Renamed.new(automation_uuid: automation.uuid, name: automation.name)
 
       assert_receive ^renamed
     end
 
-    test "should reply :ok and do not fire Renamed event if name is the same",
+    test "handle_call({:rename, name}, %{name: name} = automation) should return {:reply, :ok, automation}",
          %{automation_created: %{automation: %{name: name} = automation}} do
       assert {:reply, :ok, automation} ==
                Handler.handle_call({:rename, name}, self(), automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
   end
 
@@ -105,19 +140,19 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, :ok, %{automation | active: true}} ==
                Handler.handle_call(:activate, self(), %{automation | active: true})
 
-      refute_receive _
+      refute_receive _, 10
     end
 
-    test "should set automation :active to true and return {:reply, :ok, {:continue, :activate}}",
+    test "should set automation :active to true and return {:reply, :ok, {:continue, {:persist, :activated}}}",
          %{automation_created: %{automation: automation}} do
       assert {
                :reply,
                :ok,
                %{automation | active: true},
-               {:continue, :activated}
+               {:continue, {:persist, :activated}}
              } == Handler.handle_call(:activate, self(), automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "should reset :last_step_index to -1 and continue with :next_step ",
@@ -142,15 +177,15 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, :ok, automation} ==
                Handler.handle_call(:deactivate, self(), automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
 
-    test "should deactivate automation, reply :ok and {:continue, :deactivated}",
+    test "should deactivate automation, reply :ok and {:continue, {:persist, :deactivated}}",
          %{automation_created: %{automation: automation}} do
-      assert {:reply, :ok, automation, {:continue, :deactivated}} ==
+      assert {:reply, :ok, automation, {:continue, {:persist, :deactivated}}} ==
                Handler.handle_call(:deactivate, self(), %{automation | active: true})
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "with {:continue, :deactivated} should fire a Deactivated event",
@@ -195,74 +230,55 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     end
   end
 
-  describe "add step at" do
+  describe "add step at: " do
     @describetag :unit
 
-    test "should add a given step at the requested position and increase :total_steps", %{
-      automation: %{uuid: uuid, total_steps: total_steps} = automation
-    } do
+    test "{{:add_step_at, step, position}, automation} should add a given step at the requested position, increase :total_steps and {:continue, {:persist, {:step_added_at, step, index}}}",
+         %{
+           automation: automation
+         } do
       # step 1
 
-      %{uuid: step_uuid} = step1 = new_step() |> Step.new()
-      position = :first
-      steps = [step1]
+      {s1, s2, s3, s4} =
+        {new_step_struct(), new_step_struct(), new_step_struct(), new_step_struct()}
 
-      step_added_at = Event.StepAddedAt.new(automation_uuid: uuid, step: step1, index: 0)
+      steps = [
+        {s1, :first, 0, [s1]},
+        {s2, 1, 0, [s2, s1]},
+        {s3, :last, -1, [s2, s1, s3]},
+        {s4, 2, 1, [s2, s4, s1, s3]}
+      ]
 
-      assert {:reply, {:ok, ^step_uuid}, new_automation} =
-               Handler.handle_call({:add_step_at, step1, position}, self(), automation)
+      steps
+      |> Enum.reduce(
+        automation,
+        fn {%{uuid: step_uuid} = step, position, index, steps},
+           %{total_steps: total_steps} = automation ->
+          assert {:reply, {:ok, ^step_uuid}, new_automation,
+                  {:continue, {:persist, {:step_added_at, ^step, ^index}}}} =
+                   Handler.handle_call({:add_step_at, step, position}, self(), automation)
 
-      total_steps = total_steps + 1
-      assert %{automation | steps: steps, total_steps: total_steps} == new_automation
+          assert %{automation | steps: steps, total_steps: total_steps + 1} == new_automation
 
-      assert_receive ^step_added_at
+          refute_receive _, 10
 
-      # step 2
+          new_automation
+        end
+      )
+    end
 
-      %{uuid: step_uuid} = step2 = new_step() |> Step.new()
-      position = 1
-      steps = [step2, step1]
-
-      step_added_at = Event.StepAddedAt.new(automation_uuid: uuid, step: step2, index: 0)
-
-      assert {:reply, {:ok, ^step_uuid}, new_automation} =
-               Handler.handle_call({:add_step_at, step2, position}, self(), new_automation)
-
-      total_steps = total_steps + 1
-      assert %{automation | steps: steps, total_steps: total_steps} == new_automation
-
-      assert_receive ^step_added_at
-
-      # step 3
-
-      %{uuid: step_uuid} = step3 = new_step() |> Step.new()
-      position = :last
-      steps = [step2, step1, step3]
-
-      step_added_at = Event.StepAddedAt.new(automation_uuid: uuid, step: step3, index: -1)
-
-      assert {:reply, {:ok, ^step_uuid}, new_automation} =
-               Handler.handle_call({:add_step_at, step3, position}, self(), new_automation)
-
-      total_steps = total_steps + 1
-      assert %{automation | steps: steps, total_steps: total_steps} == new_automation
-
-      assert_receive ^step_added_at
-
-      # step 4
-
-      %{uuid: step_uuid} = step4 = new_step() |> Step.new()
-      position = 2
-      steps = [step2, step4, step1, step3]
+    test "handle_continue({:step_added_at, step, index}, automation) should fire StepAddedAt event and return {:noreply, automation}",
+         %{
+           automation: automation
+         } do
+      step = new_step_struct()
+      index = -1
 
       step_added_at =
-        Event.StepAddedAt.new(automation_uuid: uuid, step: step4, index: position - 1)
+        Event.StepAddedAt.new(automation_uuid: automation.uuid, step: step, index: index)
 
-      assert {:reply, {:ok, ^step_uuid}, new_automation} =
-               Handler.handle_call({:add_step_at, step4, position}, self(), new_automation)
-
-      total_steps = total_steps + 1
-      assert %{automation | steps: steps, total_steps: total_steps} == new_automation
+      assert {:noreply, automation} ==
+               Handler.handle_continue({:step_added_at, step, index}, automation)
 
       assert_receive ^step_added_at
     end
@@ -270,8 +286,6 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     test "should return {:error, :active_automation_cannot_be_altered}", %{
       automation: %{uuid: uuid} = automation
     } do
-      # step 1
-
       automation = %{automation | active: true}
 
       step = new_step() |> Step.new()
@@ -282,14 +296,14 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, {:error, :active_automation_cannot_be_altered}, automation} ==
                Handler.handle_call({:add_step_at, step, position}, self(), automation)
 
-      refute_receive ^step_added_at
+      refute_receive ^step_added_at, 10
     end
   end
 
   describe "delete step" do
     @describetag :unit
 
-    test "should delete a step with given id", %{
+    test "should delete a step with given id and persist", %{
       automation: automation
     } do
       # step 1
@@ -308,23 +322,35 @@ defmodule Peasant.Automation.HandlerImplementationTest do
         new_steps = List.delete_at(steps, step_index)
         new_total_steps = Enum.count(new_steps)
 
-        assert {:reply, :ok, %{automation | steps: new_steps, total_steps: new_total_steps}} ==
+        assert {:reply, :ok, %{automation | steps: new_steps, total_steps: new_total_steps},
+                {:continue, {:persist, {:step_deleted, step_uuid}}}} ==
                  Handler.handle_call({:delete_step, step_uuid}, self(), %{
                    automation
                    | steps: steps,
                      total_steps: total_steps
                  })
 
-        step_deleted =
-          Event.StepDeleted.new(automation_uuid: automation.uuid, step_uuid: step_uuid)
-
-        assert_receive ^step_deleted
+        refute_receive _, 10
 
         new_steps
       end)
     end
 
-    test "should return :ok event if step with given id doesn't exist but no any notifications",
+    test "handle_continue({:step_deleted, step_uuid}, automation) should fire event and return {:noreply, automation}",
+         %{
+           automation: automation
+         } do
+      step_uuid = UUID.uuid4()
+
+      step_deleted = Event.StepDeleted.new(automation_uuid: automation.uuid, step_uuid: step_uuid)
+
+      assert {:noreply, automation} ==
+               Handler.handle_continue({:step_deleted, step_uuid}, automation)
+
+      assert_receive ^step_deleted
+    end
+
+    test "should return :ok even if step with given id doesn't exist but no any notifications",
          %{
            automation: automation
          } do
@@ -333,7 +359,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, :ok, automation} ==
                Handler.handle_call({:delete_step, step_uuid}, self(), automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "should return {:error, :active_automation_cannot_be_altered}", %{
@@ -350,7 +376,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, {:error, :active_automation_cannot_be_altered}, automation} ==
                Handler.handle_call({:delete_step, step.uuid}, self(), automation)
 
-      refute_receive ^step_deleted
+      refute_receive ^step_deleted, 10
     end
   end
 
@@ -367,15 +393,29 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       automation = %{automation | steps: [step]}
       new_automation = %{automation | steps: [%{step | name: new_name}]}
 
+      assert {:reply, :ok, new_automation,
+              {:continue, {:persist, {:step_renamed, step.uuid, new_name}}}} ==
+               Handler.handle_call({:rename_step, step.uuid, new_name}, self(), automation)
+
+      refute_receive _, 10
+    end
+
+    test "handle_continue({:step_renamed, step_uuid, new_name}, automation) should fire event and return {:noreply, automation}",
+         %{
+           automation: automation
+         } do
+      step_uuid = UUID.uuid4()
+      new_name = Faker.Lorem.word()
+
       step_renamed =
         Event.StepRenamed.new(
           automation_uuid: automation.uuid,
-          step_uuid: step.uuid,
+          step_uuid: step_uuid,
           name: new_name
         )
 
-      assert {:reply, :ok, new_automation} ==
-               Handler.handle_call({:rename_step, step.uuid, new_name}, self(), automation)
+      assert {:noreply, automation} ==
+               Handler.handle_continue({:step_renamed, step_uuid, new_name}, automation)
 
       assert_receive ^step_renamed
     end
@@ -399,7 +439,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, :ok, automation} ==
                Handler.handle_call({:rename_step, step.uuid, new_name}, self(), automation)
 
-      refute_receive ^step_renamed
+      refute_receive ^step_renamed, 10
     end
 
     test "should return {:error, :no_such_step_exists} step with given id doesn't exist but no any notifications",
@@ -412,7 +452,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, {:error, :no_such_step_exists}, automation} ==
                Handler.handle_call({:rename_step, step_uuid, new_name}, self(), automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "should return {:error, :active_automation_cannot_be_altered}", %{
@@ -430,7 +470,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, {:error, :active_automation_cannot_be_altered}, automation} ==
                Handler.handle_call({:rename_step, step.uuid, new_name}, self(), automation)
 
-      refute_receive ^step_deleted
+      refute_receive ^step_deleted, 10
     end
   end
 
@@ -440,62 +480,47 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     test "should move a step with given id to the given position", %{
       automation: automation
     } do
-      step1 = new_step_struct()
-      step2 = new_step_struct()
-      step3 = new_step_struct()
-      step4 = new_step_struct()
+      initial = [s1, s2, s3, s4] = Enum.map(0..3, fn _ -> new_step_struct() end)
 
-      # to_position1 = :first
-      # step_to_move1 = step2
-      # steps1 = [step2, step1, step3, step4]
-
-      # to_position2 = :last
-      # step_to_move2 = step1
-      # steps2 = [step2, step3, step4, step1]
-
-      # to_position3 = 1
-      # step_to_move3 = step1
-      # steps3 = [step1, step2, step3, step4]
-
-      # to_position4 = 3
-      # step_to_move4 = step2
-      # steps4 = [step1, step3, step2, step4]
-
-      to_p = [:first, :last, 1, 3]
-      indx = [0, -1, 0, 2]
-      st_to_m = [step2.uuid, step1.uuid, step1.uuid, step2.uuid]
-
-      steps0 = [step1, step2, step3, step4]
-
-      stps = [
-        [step2, step1, step3, step4],
-        [step2, step3, step4, step1],
-        [step1, step2, step3, step4],
-        [step1, step3, step2, step4]
+      [
+        {s2, :first, 0, [s2, s1, s3, s4]},
+        {s1, :last, -1, [s2, s3, s4, s1]},
+        {s1, 1, 0, [s1, s2, s3, s4]},
+        {s2, 3, 2, [s1, s3, s2, s4]}
       ]
-
-      0..3
-      |> Enum.reduce(steps0, fn i, steps ->
-        event =
-          Event.StepMovedTo.new(
-            automation_uuid: automation.uuid,
-            step_uuid: Enum.at(st_to_m, i),
-            index: Enum.at(indx, i)
-          )
-
-        new_steps = Enum.at(stps, i)
-
-        assert {:reply, :ok, %{automation | steps: new_steps}} ==
+      |> Enum.reduce(initial, fn {step, position, index, final}, initial ->
+        assert {:reply, :ok, %{automation | steps: final},
+                {:continue, {:persist, {:step_moved_to, step.uuid, index}}}} ==
                  Handler.handle_call(
-                   {:move_step_to, Enum.at(st_to_m, i), Enum.at(to_p, i)},
+                   {:move_step_to, step.uuid, position},
                    self(),
-                   %{automation | steps: steps}
+                   %{automation | steps: initial}
                  )
 
-        assert_receive ^event
+        refute_receive _, 10
 
-        new_steps
+        final
       end)
+    end
+
+    test "handle_continue({:step_moved_to, step_uuid, index}, automation) should fire event and return {:noreply, automation}",
+         %{
+           automation: automation
+         } do
+      step_uuid = UUID.uuid4()
+      index = Faker.random_between(0, 10)
+
+      step_moved_to =
+        Event.StepMovedTo.new(
+          automation_uuid: automation.uuid,
+          step_uuid: step_uuid,
+          index: index
+        )
+
+      assert {:noreply, automation} ==
+               Handler.handle_continue({:step_moved_to, step_uuid, index}, automation)
+
+      assert_receive ^step_moved_to
     end
 
     test "should return :ok and no notification if step is already at the given position", %{
@@ -512,7 +537,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
                  automation
                )
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "should return {:error, :no_such_step_exists} step with given id doesn't exist but no any notifications",
@@ -531,7 +556,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
                  automation
                )
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "should return {:error, :active_automation_cannot_be_altered}", %{
@@ -548,7 +573,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
                  automation
                )
 
-      refute_receive _
+      refute_receive _, 10
     end
   end
 
@@ -559,19 +584,29 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       automation: automation
     } do
       step = new_step() |> Step.new()
-
       automation = %{automation | steps: [step]}
-
       new_automation = %{automation | steps: [%{step | active: true}]}
+
+      assert {:reply, :ok, new_automation, {:continue, {:persist, {:step_activated, step.uuid}}}} ==
+               Handler.handle_call({:activate_step, step.uuid}, self(), automation)
+
+      refute_receive _, 10
+    end
+
+    test "handle_continue({:step_activated, step_uuid}, automation) should fire event and return {:noreply, automation}",
+         %{
+           automation: automation
+         } do
+      step_uuid = UUID.uuid4()
 
       step_activated =
         Event.StepActivated.new(
           automation_uuid: automation.uuid,
-          step_uuid: step.uuid
+          step_uuid: step_uuid
         )
 
-      assert {:reply, :ok, new_automation} ==
-               Handler.handle_call({:activate_step, step.uuid}, self(), automation)
+      assert {:noreply, automation} ==
+               Handler.handle_continue({:step_activated, step_uuid}, automation)
 
       assert_receive ^step_activated
     end
@@ -586,7 +621,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, :ok, automation} ==
                Handler.handle_call({:activate_step, step.uuid}, self(), automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "should return {:error, :no_such_step_exists} step with given id doesn't exist but no any notifications",
@@ -598,7 +633,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, {:error, :no_such_step_exists}, automation} ==
                Handler.handle_call({:activate_step, step_uuid}, self(), automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "should return {:error, :active_automation_cannot_be_altered}", %{
@@ -613,7 +648,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, {:error, :active_automation_cannot_be_altered}, automation} ==
                Handler.handle_call({:activate_step, step.uuid}, self(), automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
   end
 
@@ -629,14 +664,27 @@ defmodule Peasant.Automation.HandlerImplementationTest do
 
       new_automation = %{automation | steps: [step]}
 
+      assert {:reply, :ok, new_automation,
+              {:continue, {:persist, {:step_deactivated, step.uuid}}}} ==
+               Handler.handle_call({:deactivate_step, step.uuid}, self(), automation)
+
+      refute_receive _, 10
+    end
+
+    test "handle_continue({:step_deactivated, step_uuid}, automation) should fire event and return {:noreply, automation}",
+         %{
+           automation: automation
+         } do
+      step_uuid = UUID.uuid4()
+
       step_deactivated =
         Event.StepDeactivated.new(
           automation_uuid: automation.uuid,
-          step_uuid: step.uuid
+          step_uuid: step_uuid
         )
 
-      assert {:reply, :ok, new_automation} ==
-               Handler.handle_call({:deactivate_step, step.uuid}, self(), automation)
+      assert {:noreply, automation} ==
+               Handler.handle_continue({:step_deactivated, step_uuid}, automation)
 
       assert_receive ^step_deactivated
     end
@@ -651,7 +699,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, :ok, automation} ==
                Handler.handle_call({:deactivate_step, step.uuid}, self(), automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "should return {:error, :no_such_step_exists} step with given id doesn't exist but no any notifications",
@@ -663,7 +711,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, {:error, :no_such_step_exists}, automation} ==
                Handler.handle_call({:deactivate_step, step_uuid}, self(), automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "should return {:error, :active_automation_cannot_be_altered}", %{
@@ -678,7 +726,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:reply, {:error, :active_automation_cannot_be_altered}, automation} ==
                Handler.handle_call({:deactivate_step, step.uuid}, self(), automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
   end
 

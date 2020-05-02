@@ -24,7 +24,7 @@ defmodule Peasant.Automation.HandlerBasicAutomationProcess do
       assert {:noreply, automation} ==
                Handler.handle_continue(:next_step, automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "if current last_step_index + 1 == total_steps should return {:continue, :next_step}, set :last_step_index to -1",
@@ -39,7 +39,7 @@ defmodule Peasant.Automation.HandlerBasicAutomationProcess do
                  | last_step_index: total_steps - 1
                })
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "should return {:continue, {:start_step, current_step}}",
@@ -77,7 +77,7 @@ defmodule Peasant.Automation.HandlerBasicAutomationProcess do
                {:continue, {:start_step, _}}
              } = Handler.handle_continue(:next_step, automation)
 
-      refute_receive _
+      refute_receive _, 10
     end
   end
 

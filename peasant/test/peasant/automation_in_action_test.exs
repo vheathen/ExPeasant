@@ -111,9 +111,9 @@ defmodule Peasant.AutomationInActionTest do
 
       assert_receive %AE.StepStopped{step_uuid: ^s7u, step_duration: duration}
 
-      assert_receive %AE.Deactivated{automation_uuid: ^a1}, 1_000
+      assert_receive %AE.Deactivated{automation_uuid: ^a1}
 
-      assert duration < @time_to_wait
+      assert_in_delta duration, @time_to_wait, 30
 
       # Logger.warn("s7 pause actual duration: #{duration}")
     end

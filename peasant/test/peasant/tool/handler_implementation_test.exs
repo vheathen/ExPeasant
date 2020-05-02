@@ -1,6 +1,10 @@
 defmodule Peasant.Tool.HandlerImplementationTest do
   use Peasant.GeneralCase
 
+  import Peasant.Collection.TestHelper
+
+  alias Peasant.Repo
+
   alias Peasant.Tool.Handler
 
   alias Peasant.Tools.FakeTool
@@ -10,11 +14,38 @@ defmodule Peasant.Tool.HandlerImplementationTest do
 
   setup do
     Peasant.subscribe(@tools)
-    GenServer.stop(Peasant.Collection.Observer.Tools)
+    # GenServer.stop(Peasant.Collection.Observer.Tools)
   end
 
   setup context do
     [tool: make_tool(context)]
+  end
+
+  describe "persist" do
+    @describetag :unit
+
+    setup :register_tool_setup
+
+    test "should persist current state and continue with the given next action",
+         %{tool: tool} do
+      assert {:noreply, stored_tool, {:continue, :registered}} =
+               Handler.handle_continue({:persist, :registered}, tool)
+
+      assert tool == stored_tool |> nilify_timestamps()
+
+      assert stored_tool == Repo.get(tool.uuid, @tools)
+      assert stored_tool == Peasant.Collection.Keeper.get_by_id(tool.uuid)
+    end
+
+    test "should persist current state and stop if no next_action or it is nil",
+         %{tool: tool} do
+      assert {:noreply, stored_tool} = Handler.handle_continue(:persist, tool)
+
+      assert tool == stored_tool |> nilify_timestamps()
+
+      assert stored_tool == Repo.get(tool.uuid, @tools)
+      assert stored_tool == Peasant.Collection.Keeper.get_by_id(tool.uuid)
+    end
   end
 
   describe "registration process" do
@@ -22,9 +53,10 @@ defmodule Peasant.Tool.HandlerImplementationTest do
 
     setup :register_tool_setup
 
-    test "init(%{new: true} = tool) should return %{new: false} = tool as a state and {:continue, :registered}",
+    test "init(%{new: true} = tool) should return {:ok, %{tool | new: false}, {:continue, {:persist, :registered}}}",
          %{tool: tool} do
-      assert {:ok, %{tool | new: false}, {:continue, :registered}} == Handler.init(tool)
+      assert {:ok, %{tool | new: false}, {:continue, {:persist, :registered}}} ==
+               Handler.init(tool)
     end
 
     test "should notify about tool registeration", %{
@@ -40,7 +72,7 @@ defmodule Peasant.Tool.HandlerImplementationTest do
 
     setup :load_tool_setup
 
-    test "init(%{new: false} = tool) should return tool as a state and {:continue, :loaded}", %{
+    test "init(%{new: false} = tool) should return {:ok, tool, {:continue, :loaded}}", %{
       tool: tool
     } do
       assert {:ok, tool, {:continue, :loaded}} == Handler.init(%{tool | new: false})
@@ -51,6 +83,24 @@ defmodule Peasant.Tool.HandlerImplementationTest do
       assert_receive ^loaded
     end
   end
+
+  # describe "deletion process" do
+  #   @describetag :unit
+
+  #   setup :register_tool_setup
+
+  #   test "should return {:reply, {:error, :tool_should_be_detached}, tool} if tool is attached",
+  #        %{tool: tool} do
+  #     assert {:ok, {:error, :tool_should_be_detached}, tool} == Handler.handle_call(:delete, tool)
+  #   end
+
+  #   test "should notify about tool deletion", %{
+  #     tool_registered: %{details: %{tool: tool}} = registered
+  #   } do
+  #     assert {:noreply, %{tool | new: false}} == Handler.handle_continue(:registered, tool)
+  #     assert_receive ^registered
+  #   end
+  # end
 
   describe "commit action process" do
     @describetag :unit
@@ -65,7 +115,7 @@ defmodule Peasant.Tool.HandlerImplementationTest do
       assert {:reply, {:error, :not_attached}, tool} =
                Handler.handle_call({:commit, action, action_config}, self(), tool)
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     defmodule FakeTool2 do
@@ -92,7 +142,7 @@ defmodule Peasant.Tool.HandlerImplementationTest do
               {:continue, {:commit, ^action, ^action_config, action_ref}}} =
                Handler.handle_call({:commit, action, action_config}, self(), tool)
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "should return {:ok, action_ref} and {:continue, {:commit, action, action_config, action_ref}}",
@@ -106,7 +156,7 @@ defmodule Peasant.Tool.HandlerImplementationTest do
               {:continue, {:commit, ^action, ^action_config, action_ref}}} =
                Handler.handle_call({:commit, action, action_config}, self(), tool)
 
-      refute_receive _
+      refute_receive _, 10
     end
 
     test "should fire returned from action implementation events and put a new tool structure into the state",

@@ -59,10 +59,20 @@ defmodule Peasant.Automation.Handler do
   #
 
   def init(%State{new: true} = automation),
-    do: {:ok, %{automation | new: false}, {:continue, :created}}
+    do: {:ok, %{automation | new: false}, {:continue, {:persist, :created}}}
 
   def init(%State{} = automation),
     do: {:ok, automation, {:continue, :loaded}}
+
+  def handle_continue(:persist, automation), do: handle_continue({:persist, nil}, automation)
+
+  def handle_continue({:persist, next_action}, automation) do
+    automation = Peasant.Repo.put(automation, automation.uuid, @automations)
+
+    if is_nil(next_action),
+      do: {:noreply, automation},
+      else: {:noreply, automation, {:continue, next_action}}
+  end
 
   def handle_continue(:created, automation) do
     [automation_uuid: automation.uuid, automation: automation]
@@ -119,6 +129,83 @@ defmodule Peasant.Automation.Handler do
 
     [automation_uuid: automation.uuid]
     |> Event.Deactivated.new()
+    |> notify()
+
+    {:noreply, automation}
+  end
+
+  def handle_continue(
+        :renamed,
+        automation
+      ) do
+    [automation_uuid: automation.uuid, name: automation.name]
+    |> Event.Renamed.new()
+    |> notify()
+
+    {:noreply, automation}
+  end
+
+  def handle_continue(
+        {:step_added_at, step, index},
+        automation
+      ) do
+    [automation_uuid: automation.uuid, step: step, index: index]
+    |> Event.StepAddedAt.new()
+    |> notify()
+
+    {:noreply, automation}
+  end
+
+  def handle_continue(
+        {:step_deleted, step_uuid},
+        automation
+      ) do
+    [automation_uuid: automation.uuid, step_uuid: step_uuid]
+    |> Event.StepDeleted.new()
+    |> notify()
+
+    {:noreply, automation}
+  end
+
+  def handle_continue(
+        {:step_renamed, step_uuid, new_name},
+        automation
+      ) do
+    [automation_uuid: automation.uuid, step_uuid: step_uuid, name: new_name]
+    |> Event.StepRenamed.new()
+    |> notify()
+
+    {:noreply, automation}
+  end
+
+  def handle_continue(
+        {:step_moved_to, step_uuid, index},
+        automation
+      ) do
+    [automation_uuid: automation.uuid, step_uuid: step_uuid, index: index]
+    |> Event.StepMovedTo.new()
+    |> notify()
+
+    {:noreply, automation}
+  end
+
+  def handle_continue(
+        {:step_activated, step_uuid},
+        automation
+      ) do
+    [automation_uuid: automation.uuid, step_uuid: step_uuid]
+    |> Event.StepActivated.new()
+    |> notify()
+
+    {:noreply, automation}
+  end
+
+  def handle_continue(
+        {:step_deactivated, step_uuid},
+        automation
+      ) do
+    [automation_uuid: automation.uuid, step_uuid: step_uuid]
+    |> Event.StepDeactivated.new()
     |> notify()
 
     {:noreply, automation}
@@ -246,24 +333,20 @@ defmodule Peasant.Automation.Handler do
     do: {:reply, :ok, automation}
 
   def handle_call({:rename, new_name}, _from, automation) do
-    [automation_uuid: automation.uuid, name: new_name]
-    |> Event.Renamed.new()
-    |> notify()
-
-    {:reply, :ok, %{automation | name: new_name}}
+    {:reply, :ok, %{automation | name: new_name}, {:continue, {:persist, :renamed}}}
   end
 
   def handle_call(:activate, _from, %{active: true} = automation),
     do: {:reply, :ok, automation}
 
   def handle_call(:activate, _from, automation),
-    do: {:reply, :ok, %{automation | active: true}, {:continue, :activated}}
+    do: {:reply, :ok, %{automation | active: true}, {:continue, {:persist, :activated}}}
 
   def handle_call(:deactivate, _from, %{active: false} = automation),
     do: {:reply, :ok, automation}
 
   def handle_call(:deactivate, _from, automation),
-    do: {:reply, :ok, %{automation | active: false}, {:continue, :deactivated}}
+    do: {:reply, :ok, %{automation | active: false}, {:continue, {:persist, :deactivated}}}
 
   #
   # step operations
@@ -275,124 +358,121 @@ defmodule Peasant.Automation.Handler do
   def handle_call(
         {:add_step_at, step, position},
         _from,
-        %{steps: steps, total_steps: total_steps} = automation
+        automation
       ) do
-    index = get_index(steps, position)
+    index = get_index(automation.steps, position)
+    steps = List.insert_at(automation.steps, index, step)
 
-    steps = List.insert_at(steps, index, step)
-    total_steps = total_steps + 1
-
-    [automation_uuid: automation.uuid, step: step, index: index]
-    |> Event.StepAddedAt.new()
-    |> notify()
-
-    {:reply, {:ok, step.uuid}, %{automation | steps: steps, total_steps: total_steps}}
+    {
+      :reply,
+      {:ok, step.uuid},
+      %{automation | steps: steps, total_steps: automation.total_steps + 1},
+      {:continue, {:persist, {:step_added_at, step, index}}}
+    }
   end
 
   def handle_call(
         {:delete_step, step_uuid},
         _from,
-        %{steps: steps, total_steps: total_steps} = automation
+        automation
       ) do
-    automation =
-      case Enum.find_index(steps, &(&1.uuid == step_uuid)) do
-        nil ->
-          automation
+    case _update_steps(automation, &_delete_step(&1, step_uuid)) do
+      ^automation ->
+        {:reply, :ok, automation}
 
-        step_index ->
-          new_steps = List.delete_at(steps, step_index)
-          total_steps = total_steps - 1
-
-          [automation_uuid: automation.uuid, step_uuid: step_uuid]
-          |> Event.StepDeleted.new()
-          |> notify()
-
-          %{automation | steps: new_steps, total_steps: total_steps}
-      end
-
-    {:reply, :ok, automation}
+      %{} = new_automation ->
+        {:reply, :ok, %{new_automation | total_steps: automation.total_steps - 1},
+         {:continue, {:persist, {:step_deleted, step_uuid}}}}
+    end
   end
 
-  def handle_call({:rename_step, step_uuid, new_name}, _from, %{steps: steps} = automation) do
-    case Enum.find_index(steps, &(&1.uuid == step_uuid)) do
-      nil ->
+  def handle_call({:rename_step, step_uuid, new_name}, _from, automation) do
+    rename = &%{&1 | name: new_name}
+
+    case _update_steps(automation, &_update_step(&1, step_uuid, rename, true)) do
+      %{steps: nil} ->
         {:reply, {:error, :no_such_step_exists}, automation}
 
-      step_index ->
-        new_steps = List.update_at(steps, step_index, &%{&1 | name: new_name})
+      ^automation ->
+        {:reply, :ok, automation}
 
-        if(Enum.at(new_steps, step_index) != Enum.at(steps, step_index)) do
-          [automation_uuid: automation.uuid, step_uuid: step_uuid, name: new_name]
-          |> Event.StepRenamed.new()
-          |> notify()
-        end
-
-        {:reply, :ok, %{automation | steps: new_steps}}
+      %{} = automation ->
+        {:reply, :ok, automation, {:continue, {:persist, {:step_renamed, step_uuid, new_name}}}}
     end
   end
 
   def handle_call(
         {:move_step_to, step_uuid, position},
         _from,
-        %{steps: steps, total_steps: total_steps} = automation
+        automation
       ) do
-    to_index = get_index(steps, position)
+    to_index = get_index(automation.steps, position)
+    from_index = _step_index(automation.steps, step_uuid)
 
-    case Enum.find_index(steps, &(&1.uuid == step_uuid)) do
-      nil ->
+    move =
+      &case from_index && List.pop_at(&1, from_index) do
+        nil -> nil
+        {step, steps} -> List.insert_at(steps, to_index, step)
+      end
+
+    case _update_steps(automation, move) do
+      %{steps: nil} ->
         {:reply, {:error, :no_such_step_exists}, automation}
 
-      step_index
-      when step_index == to_index or
-             (step_index == total_steps - 1 and to_index == -1) ->
+      ^automation ->
         {:reply, :ok, automation}
 
-      step_index ->
-        {step, steps} = List.pop_at(steps, step_index)
-
-        new_steps = List.insert_at(steps, to_index, step)
-
-        [automation_uuid: automation.uuid, step_uuid: step_uuid, index: to_index]
-        |> Event.StepMovedTo.new()
-        |> notify()
-
-        {:reply, :ok, %{automation | steps: new_steps}}
+      %{} = automation ->
+        {
+          :reply,
+          :ok,
+          automation,
+          {:continue, {:persist, {:step_moved_to, step_uuid, to_index}}}
+        }
     end
   end
 
-  def handle_call({:activate_step, step_uuid}, _from, %{steps: steps} = automation) do
-    case Enum.find_index(steps, &(&1.uuid == step_uuid)) do
-      nil ->
+  def handle_call(
+        {:activate_step, step_uuid},
+        _from,
+        automation
+      ) do
+    activate = &%{&1 | active: true}
+
+    case _update_steps(automation, &_update_step(&1, step_uuid, activate, true)) do
+      %{steps: nil} ->
         {:reply, {:error, :no_such_step_exists}, automation}
 
-      step_index ->
-        new_steps = List.update_at(steps, step_index, &%{&1 | active: true})
+      ^automation ->
+        {:reply, :ok, automation}
 
-        if(Enum.at(new_steps, step_index) != Enum.at(steps, step_index)) do
-          [automation_uuid: automation.uuid, step_uuid: step_uuid]
-          |> Event.StepActivated.new()
-          |> notify()
-        end
-
-        {:reply, :ok, %{automation | steps: new_steps}}
+      %{} = automation ->
+        {
+          :reply,
+          :ok,
+          automation,
+          {:continue, {:persist, {:step_activated, step_uuid}}}
+        }
     end
   end
 
-  def handle_call({:deactivate_step, step_uuid}, _from, %{steps: steps} = automation) do
-    case Enum.find_index(steps, &(&1.uuid == step_uuid)) do
-      nil ->
+  def handle_call({:deactivate_step, step_uuid}, _from, automation) do
+    deactivate = &%{&1 | active: false}
+
+    case _update_steps(automation, &_update_step(&1, step_uuid, deactivate, true)) do
+      %{steps: nil} ->
         {:reply, {:error, :no_such_step_exists}, automation}
 
-      step_index ->
-        new_steps = List.update_at(steps, step_index, &%{&1 | active: false})
+      ^automation ->
+        {:reply, :ok, automation}
 
-        if(Enum.at(new_steps, step_index) != Enum.at(steps, step_index)) do
-          [automation_uuid: automation.uuid, step_uuid: step_uuid]
-          |> Event.StepDeactivated.new()
-          |> notify()
-        end
-
-        {:reply, :ok, %{automation | steps: new_steps}}
+      %{} = automation ->
+        {
+          :reply,
+          :ok,
+          automation,
+          {:continue, {:persist, {:step_deactivated, step_uuid}}}
+        }
     end
   end
 
@@ -441,5 +521,36 @@ defmodule Peasant.Automation.Handler do
     ]
     |> Event.StepStopped.new()
     |> notify()
+  end
+
+  defp _update_step(steps, step_uuid, fun, nilify? \\ false)
+
+  defp _update_step(steps, step_uuid, fun, false) when is_function(fun, 1),
+    do: _update_step(steps, step_uuid, fun, true) || steps
+
+  defp _update_step(steps, step_uuid, fun, true) when is_function(fun, 1) do
+    index = _step_index(steps, step_uuid)
+    index && List.update_at(steps, index, &fun.(&1))
+  end
+
+  defp _delete_step(steps, step_uuid, nilify? \\ false)
+
+  defp _delete_step(steps, step_uuid, false),
+    do: _delete_step(steps, step_uuid, true) || steps
+
+  defp _delete_step(steps, step_uuid, true) do
+    index = _step_index(steps, step_uuid)
+    index && List.delete_at(steps, index)
+  end
+
+  defp _step_index(steps, step_uuid), do: Enum.find_index(steps, &(&1.uuid == step_uuid))
+
+  defp _update_steps(automation, fun) when is_function(fun, 1) do
+    Map.update(
+      automation,
+      :steps,
+      [],
+      &fun.(&1)
+    )
   end
 end

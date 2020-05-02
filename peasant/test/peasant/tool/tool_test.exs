@@ -69,7 +69,7 @@ defmodule Peasant.ToolTest do
       tool = new_tool() |> Map.delete(:name)
       assert {:error, _} = Tool.register(FakeTool, tool)
 
-      refute_receive {:register, %FakeTool{}}
+      refute_receive {:register, %FakeTool{}}, 10
     end
   end
 

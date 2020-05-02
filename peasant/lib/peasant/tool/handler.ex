@@ -30,12 +30,19 @@ defmodule Peasant.Tool.Handler do
   ####
   # Implementation
 
-  def init(%{new: true} = tool) do
-    {:ok, %{tool | new: false}, {:continue, :registered}}
-  end
+  def init(%{new: true} = tool),
+    do: {:ok, %{tool | new: false}, {:continue, {:persist, :registered}}}
 
-  def init(%{new: false} = tool) do
-    {:ok, tool, {:continue, :loaded}}
+  def init(%{new: false} = tool), do: {:ok, tool, {:continue, :loaded}}
+
+  def handle_continue(:persist, tool), do: handle_continue({:persist, nil}, tool)
+
+  def handle_continue({:persist, next_action}, tool) do
+    tool = Peasant.Repo.put(tool, tool.uuid, @tools)
+
+    if is_nil(next_action),
+      do: {:noreply, tool},
+      else: {:noreply, tool, {:continue, next_action}}
   end
 
   def handle_continue(:registered, %_{} = tool) do

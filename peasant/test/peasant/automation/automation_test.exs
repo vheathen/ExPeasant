@@ -46,7 +46,7 @@ defmodule Peasant.AutomationTest do
       automation = new_automation() |> Map.delete(:name)
       assert {:error, _} = Automation.create(automation)
 
-      refute_receive {:create, %State{}}
+      refute_receive {:create, %State{}}, 10
     end
   end
 
@@ -86,6 +86,7 @@ defmodule Peasant.AutomationTest do
 
   describe "add_step_at/3" do
     @describetag :unit
+
     test "should run Handler.add_step_at(uuid, step, position) if options are correct", %{
       automation: %{uuid: uuid}
     } do
@@ -108,7 +109,7 @@ defmodule Peasant.AutomationTest do
       assert {:error, [name: {"can't be blank", [validation: :required]}]} =
                Automation.add_step_at(uuid, step_spec, position)
 
-      refute_receive {:add_step_at, ^uuid, _, ^position}
+      refute_receive {:add_step_at, ^uuid, _, ^position}, 10
     end
 
     test "should return {:error, :incorrect_position} if position are incorrect", %{
@@ -119,7 +120,7 @@ defmodule Peasant.AutomationTest do
         step_spec = new_step()
 
         assert {:error, :incorrect_position} = Automation.add_step_at(uuid, step_spec, position)
-        refute_receive {:add_step_at, ^uuid, _, ^position}
+        refute_receive {:add_step_at, ^uuid, _, ^position}, 10
       end)
     end
   end
@@ -151,7 +152,8 @@ defmodule Peasant.AutomationTest do
 
   describe "move_step_to/3" do
     @describetag :unit
-    test "should run Handler.move_step_2(automation_uuid, step_uuid, position)", %{
+
+    test "should run Handler.move_step_to(automation_uuid, step_uuid, position)", %{
       automation: %{uuid: automation_uuid}
     } do
       step_uuid = UUID.uuid4()
@@ -169,7 +171,7 @@ defmodule Peasant.AutomationTest do
         step_uuid = UUID.uuid4()
 
         assert {:error, :incorrect_position} = Automation.move_step_to(uuid, step_uuid, position)
-        refute_receive {:add_step_at, ^uuid, _, ^position}
+        refute_receive {:add_step_at, ^uuid, _, ^position}, 10
       end)
     end
   end
