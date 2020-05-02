@@ -10,7 +10,7 @@ defmodule PeasantWeb.ToolsLive do
 
   @tools Peasant.Tool.domain()
 
-  @sort_by ~w(name attached placement __struct__)
+  @sort_by ~w(name attached placement __struct__ updated_at)
 
   @attached_color %{
     true => "green",

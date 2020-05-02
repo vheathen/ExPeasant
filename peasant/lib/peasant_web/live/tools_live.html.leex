@@ -56,6 +56,9 @@
                 <%= sort_link(@socket, @live_action, @params, :__struct__, "Type") %>
               </th>
               <th>UUID</th>
+              <th>
+                <%= sort_link(@socket, @live_action, @params, :updated_at, "Last changes") %>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -68,6 +71,7 @@
                 <td><%= tool.placement %></td>
                 <td><%= shrink_tool_type(tool.__struct__) %></td>
                 <td><%= tool.uuid %></td>
+                <td><%= format_timestamp(tool.updated_at) %></td>
               </tr>
             <% end %>
           </tbody>
