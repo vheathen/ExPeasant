@@ -57,6 +57,14 @@ defmodule PeasantWeb.ToolsLive do
   def handle_info(%Tool.Registered{}, socket),
     do: {:noreply, fetch_tools(socket)}
 
+  def handle_info(%Tool.Attached{tool_uuid: uuid}, socket) do
+    tools =
+      socket.assigns.tools
+      |> update_tool(uuid, &%{&1 | attached: true})
+
+    {:noreply, assign(socket, tools: tools)}
+  end
+
   def handle_info(:refresh, socket) do
     {:noreply, fetch_tools(socket)}
   end
@@ -103,4 +111,11 @@ defmodule PeasantWeb.ToolsLive do
   end
 
   defp attached_color(state), do: @attached_color[state]
+
+  defp update_tool(tools, uuid, fun) do
+    case Enum.find_index(tools, &(&1.uuid == uuid)) do
+      nil -> tools
+      index -> List.update_at(tools, index, fun)
+    end
+  end
 end
