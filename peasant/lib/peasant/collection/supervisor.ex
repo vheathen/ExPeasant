@@ -35,13 +35,7 @@ defmodule Peasant.Collection.Supervisor do
       # Collection Adapter
       Peasant.Collection.Keeper,
 
-      # Tools observer
-      Peasant.Collection.Observer.Tools,
-
-      # Tools observer
-      Peasant.Collection.Observer.Automations,
-
-      # Collection Observer
+      # Main Collection Observer
       Peasant.Collection.Observer
     ]
 end
