@@ -5,11 +5,11 @@ defmodule Peasant.ToolsTest do
 
   alias Peasant.Tools.FakeTool
 
-  # @tools Peasant.Tool.domain()
+  @tools Peasant.Tool.domain()
 
-  # setup do
-  #   Peasant.subscribe(@tools)
-  # end
+  setup do
+    Peasant.subscribe(@tools)
+  end
 
   describe "Tools" do
     @describetag :unit
@@ -26,7 +26,7 @@ defmodule Peasant.ToolsTest do
     test "should have list/0" do
       {:ok, tool_uuid} = Peasant.Tool.register(FakeTool, new_tool())
 
-      :sys.get_state(Peasant.Collection.Observer.Tools)
+      assert_receive %Peasant.Tool.Event.Registered{}
 
       assert [%FakeTool{uuid: ^tool_uuid}] = Tools.list()
     end
