@@ -35,8 +35,8 @@ defmodule Peasant.Collection.ObserverTest do
     setup [:collection_setup, :on_start_collection_setup]
 
     test "it should load all records", %{tools: tools, automations: automations} do
-      assert tools == Repo.list(@tools) |> nilify_timestamps() |> Enum.sort()
-      assert automations == Repo.list(@automations) |> nilify_timestamps() |> Enum.sort()
+      assert tools == Repo.list(@tools) |> Enum.sort()
+      assert automations == Repo.list(@automations) |> Enum.sort()
     end
 
     test "it should populate all tools", %{tools: tools} do

@@ -24,8 +24,8 @@ defmodule Peasant.RepoTest do
       tools: tools,
       automations: automations
     } do
-      assert tools == Repo.list(@tools) |> nilify_timestamps() |> Enum.sort()
-      assert automations == Repo.list(@automations) |> nilify_timestamps() |> Enum.sort()
+      assert tools == Repo.list(@tools) |> Enum.sort()
+      assert automations == Repo.list(@automations) |> Enum.sort()
     end
   end
 
@@ -39,11 +39,11 @@ defmodule Peasant.RepoTest do
       automations: automations
     } do
       Enum.each(tools, fn %{uuid: uuid} = tool ->
-        assert tool == Repo.get(uuid, @tools) |> nilify_timestamps()
+        assert tool == Repo.get(uuid, @tools)
       end)
 
       Enum.each(automations, fn %{uuid: uuid} = automation ->
-        assert automation == Repo.get(uuid, @automations) |> nilify_timestamps()
+        assert automation == Repo.get(uuid, @automations)
       end)
     end
   end

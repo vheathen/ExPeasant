@@ -18,6 +18,8 @@ defmodule Peasant.Repo do
     domain
     |> String.to_existing_atom()
     |> Cachex.put(id, record)
+
+    record
   end
 
   def list(domain) do
