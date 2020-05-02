@@ -83,6 +83,8 @@ defmodule PeasantWeb do
       # Import convenience functions for LiveView rendering
       import Phoenix.LiveView.Helpers
 
+      import PeasantWeb.ViewHelpers
+
       import PeasantWeb.ErrorHelpers
       import PeasantWeb.Gettext
       alias PeasantWeb.Router.Helpers, as: Routes
