@@ -68,4 +68,13 @@ defmodule Peasant.TestHelper do
       new_word -> new_word
     end
   end
+
+  def unique_sentence(sentence \\ nil), do: new_sentence(sentence)
+
+  def new_sentence(sentence \\ nil) do
+    case Faker.Lorem.sentence() do
+      ^sentence -> new_sentence(sentence)
+      sentence -> sentence
+    end
+  end
 end

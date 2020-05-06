@@ -108,12 +108,18 @@ defmodule Peasant.Collection.Observer.Automations do
   end
 
   def handle_info(
-        %Automation.StepRenamed{automation_uuid: uuid, step_uuid: step_uuid, name: name},
+        %Automation.StepDescriptionChanged{
+          automation_uuid: uuid,
+          step_uuid: step_uuid,
+          description: description
+        },
         collection
       ) do
     uuid
     |> Repo.get(@automations)
-    |> update_steps(&update_step(&1, step_uuid, fn step -> %{step | name: name} end))
+    |> update_steps(
+      &update_step(&1, step_uuid, fn step -> %{step | description: description} end)
+    )
     |> Repo.maybe_persist(uuid, @automations)
 
     {:noreply, collection}

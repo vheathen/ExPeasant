@@ -34,8 +34,8 @@ defmodule Peasant.Automation.Handler do
   def delete_step(automation_uuid, step_uuid),
     do: try_action(automation_uuid, {:delete_step, step_uuid})
 
-  def rename_step(automation_uuid, step_uuid, new_name),
-    do: try_action(automation_uuid, {:rename_step, step_uuid, new_name})
+  def change_step_description(automation_uuid, step_uuid, new_description),
+    do: try_action(automation_uuid, {:change_step_description, step_uuid, new_description})
 
   def move_step_to(automation_uuid, step_uuid, position),
     do: try_action(automation_uuid, {:move_step_to, step_uuid, position})
@@ -168,11 +168,11 @@ defmodule Peasant.Automation.Handler do
   end
 
   def handle_continue(
-        {:step_renamed, step_uuid, new_name},
+        {:step_description_changed, step_uuid, new_description},
         automation
       ) do
-    [automation_uuid: automation.uuid, step_uuid: step_uuid, name: new_name]
-    |> Event.StepRenamed.new()
+    [automation_uuid: automation.uuid, step_uuid: step_uuid, description: new_description]
+    |> Event.StepDescriptionChanged.new()
     |> notify()
 
     {:noreply, automation}
@@ -386,10 +386,10 @@ defmodule Peasant.Automation.Handler do
     end
   end
 
-  def handle_call({:rename_step, step_uuid, new_name}, _from, automation) do
-    rename = &%{&1 | name: new_name}
+  def handle_call({:change_step_description, step_uuid, new_description}, _from, automation) do
+    change_description = &%{&1 | description: new_description}
 
-    case _update_steps(automation, &_update_step(&1, step_uuid, rename, true)) do
+    case _update_steps(automation, &_update_step(&1, step_uuid, change_description, true)) do
       %{steps: nil} ->
         {:reply, {:error, :no_such_step_exists}, automation}
 
@@ -397,7 +397,8 @@ defmodule Peasant.Automation.Handler do
         {:reply, :ok, automation}
 
       %{} = automation ->
-        {:reply, :ok, automation, {:continue, {:persist, {:step_renamed, step_uuid, new_name}}}}
+        {:reply, :ok, automation,
+         {:continue, {:persist, {:step_description_changed, step_uuid, new_description}}}}
     end
   end
 

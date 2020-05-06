@@ -135,26 +135,27 @@ defmodule Peasant.Automation.HandlerAPITest do
     end
   end
 
-  describe "rename_step/3" do
+  describe "change_step_description/3" do
     @describetag :unit
 
-    test "should cast {:rename_step, step_uuid, new_name} to a process with uuid as id", %{
-      uuid: automation_uuid
-    } do
+    test "should cast {:change_step_description, step_uuid, new_description} to a process with uuid as id",
+         %{
+           uuid: automation_uuid
+         } do
       step_uuid = UUID.uuid4()
-      new_name = Faker.Lorem.word()
+      new_description = Faker.Lorem.sentence()
 
-      assert {:call, {:rename_step, step_uuid, new_name}} ==
-               Handler.rename_step(automation_uuid, step_uuid, new_name)
+      assert {:call, {:change_step_description, step_uuid, new_description}} ==
+               Handler.change_step_description(automation_uuid, step_uuid, new_description)
     end
 
     test "should return {:error, :no_automation_exists} for an unknown uuid" do
       step_uuid = UUID.uuid4()
       automation_uuid = UUID.uuid4()
-      new_name = Faker.Lorem.word()
+      new_description = Faker.Lorem.sentence()
 
       assert {:error, :no_automation_exists} ==
-               Handler.rename_step(automation_uuid, step_uuid, new_name)
+               Handler.change_step_description(automation_uuid, step_uuid, new_description)
     end
   end
 

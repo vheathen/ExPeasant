@@ -103,10 +103,10 @@ defmodule Peasant.AutomationTest do
     test "should return {:error, term()} if step specs are incorrect", %{
       automation: %{uuid: uuid}
     } do
-      step_spec = new_step() |> Map.delete(:name)
+      step_spec = %{new_step() | action: "unknown_action_#{UUID.uuid4()}"}
       position = :last
 
-      assert {:error, [name: {"can't be blank", [validation: :required]}]} =
+      assert {:error, [action: {"doesn't exist", [validation: :action]}]} =
                Automation.add_step_at(uuid, step_spec, position)
 
       refute_receive {:add_step_at, ^uuid, _, ^position}, 10
@@ -137,16 +137,17 @@ defmodule Peasant.AutomationTest do
     end
   end
 
-  describe "rename_step/3" do
+  describe "change_step_description/3" do
     @describetag :unit
-    test "should run Handler.rename_step(automation_uuid, step_uuid, new_name)", %{
-      automation: %{uuid: automation_uuid}
-    } do
+    test "should run Handler.change_step_description(automation_uuid, step_uuid, new_description)",
+         %{
+           automation: %{uuid: automation_uuid}
+         } do
       step_uuid = UUID.uuid4()
-      new_name = Faker.Lorem.word()
+      new_description = Faker.Lorem.sentence()
 
-      assert :ok = Automation.rename_step(automation_uuid, step_uuid, new_name)
-      assert_receive {:rename_step, ^automation_uuid, ^step_uuid, ^new_name}
+      assert :ok = Automation.change_step_description(automation_uuid, step_uuid, new_description)
+      assert_receive {:change_step_description, ^automation_uuid, ^step_uuid, ^new_description}
     end
   end
 

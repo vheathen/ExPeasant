@@ -10,7 +10,6 @@ defmodule Peasant.Automation.State.Step do
   ]
 
   embedded_schema do
-    field(:name, :string)
     field(:description, :string)
     field(:type, :string, default: @action)
     field(:time_to_wait, :integer)
@@ -39,7 +38,6 @@ defmodule Peasant.Automation.State.Step do
 
   def required(_),
     do: ~w(
-        name
         type
       )a
 

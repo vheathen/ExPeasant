@@ -72,11 +72,15 @@ defmodule Peasant.Automation do
   def delete_step(automation_uuid, step_uuid),
     do: automation_handler().delete_step(automation_uuid, step_uuid)
 
-  @spec rename_step(automation_uuid :: Ecto.UUID, step_uuid :: Ecto.UUID, new_name :: String.t()) ::
+  @spec change_step_description(
+          automation_uuid :: Ecto.UUID,
+          step_uuid :: Ecto.UUID,
+          new_description :: String.t()
+        ) ::
           :ok
           | {:error, term()}
-  def rename_step(automation_uuid, step_uuid, new_name),
-    do: automation_handler().rename_step(automation_uuid, step_uuid, new_name)
+  def change_step_description(automation_uuid, step_uuid, new_description),
+    do: automation_handler().change_step_description(automation_uuid, step_uuid, new_description)
 
   @spec move_step_to(
           automation_uuid :: Ecto.UUID,

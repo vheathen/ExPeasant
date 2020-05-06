@@ -38,8 +38,8 @@ defmodule Peasant.Automation.FakeHandler do
     :ok
   end
 
-  def rename_step(automation_uuid, step_uuid, new_name) do
-    send(self(), {:rename_step, automation_uuid, step_uuid, new_name})
+  def change_step_description(automation_uuid, step_uuid, new_description) do
+    send(self(), {:change_step_description, automation_uuid, step_uuid, new_description})
     :ok
   end
 

@@ -3,9 +3,7 @@ defmodule Peasant.Automation.State.StepTest do
 
   alias Peasant.Automation.State.Step
 
-  @base_required_fields [
-    :name
-  ]
+  @base_required_fields []
 
   @action_required_fields [
     :tool_uuid,
