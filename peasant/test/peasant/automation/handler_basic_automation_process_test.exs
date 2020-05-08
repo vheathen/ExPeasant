@@ -42,7 +42,7 @@ defmodule Peasant.Automation.HandlerBasicAutomationProcess do
       refute_receive _, 10
     end
 
-    test "should return {:continue, {:start_step, current_step}}",
+    test "should return {:continue, {:cache_till_reboot, {:maybe_start_step, current_step}}}",
          %{
            automation:
              %{
@@ -56,11 +56,11 @@ defmodule Peasant.Automation.HandlerBasicAutomationProcess do
       assert {
                :noreply,
                %State{},
-               {:continue, {:start_step, ^current_step}}
+               {:continue, {:cache_till_reboot, {:maybe_start_step, ^current_step}}}
              } = Handler.handle_continue(:next_step, automation)
     end
 
-    test "should set :last_step_index",
+    test "should set :last_step_index and :last_step_attempted_at",
          %{
            automation:
              %{
@@ -68,91 +68,135 @@ defmodule Peasant.Automation.HandlerBasicAutomationProcess do
              } = automation
          } do
       current_step_index = last_step_index + 1
+      last_step_attempted_at = now()
 
       assert {
                :noreply,
                %State{
+                 last_step_attempted_at: ts,
                  last_step_index: ^current_step_index
                },
-               {:continue, {:start_step, _}}
+               _
              } = Handler.handle_continue(:next_step, automation)
+
+      assert_in_delta last_step_attempted_at, ts, 20
 
       refute_receive _, 10
     end
   end
 
-  describe "handle_continue({:start_step, current_step}, automation)" do
+  describe "handle_continue({:maybe_start_step, current_step}, automation)" do
     @describetag :unit
 
-    test "if automation went inactive should return {:noreply, automation}",
+    test "if step is inactive should return {:noreply, automation, {:continue, {:step_skipped, current_step}}}",
          %{
            automation:
              %{
                steps: [current_step | _]
              } = automation
          } do
-      assert {:noreply, %{automation | active: false}} ==
-               Handler.handle_continue({:start_step, current_step}, %{automation | active: false})
+      current_step = %{current_step | active: false}
+
+      assert {:noreply, automation, {:continue, {:step_skipped, current_step}}} ==
+               Handler.handle_continue(
+                 {:maybe_start_step, current_step},
+                 automation
+               )
     end
 
-    test "if step is inactive should return {:noreply, automation, {:continue, :next_step}}",
+    test "if step is active should return {:noreply, automation, {:continue, {:step_started, current_step}}}",
          %{
            automation:
              %{
                steps: [current_step | _]
              } = automation
          } do
-      assert {:noreply, automation, {:continue, :next_step}} ==
-               Handler.handle_continue({:start_step, %{current_step | active: false}}, automation)
+      assert {:noreply, automation, {:continue, {:step_started, current_step}}} ==
+               Handler.handle_continue(
+                 {:maybe_start_step, current_step},
+                 automation
+               )
     end
+  end
 
-    test "should set :last_step_started_timeout and return {:noreply, automation, {:continue, {:do_step, current_step}}}",
-         %{
-           automation:
-             %{
-               steps: [current_step | _]
-             } = automation
-         } do
-      now = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
+  describe "handle_continue({:step_skipped, current_step}, automation)" do
+    @describetag :integration
 
-      assert {
-               :noreply,
-               %State{
-                 last_step_started_timestamp: last_step_started_timestamp
-               },
-               {:continue, {:do_step, ^current_step}}
-             } = Handler.handle_continue({:start_step, current_step}, automation)
+    # setup %{automation: %{uuid: uuid}} do
+    #   start_supervised(Peasant.Automation.FakeHandler.start_link(%{uuid: uuid, test_pid: self()}))
 
-      assert_in_delta now, last_step_started_timestamp, 20
+    #   :ok
+    # end
+
+    test "should return {:noreply, automation}, fire StepSkipped event and call :next_step", %{
+      automation:
+        %{
+          uuid: automation_uuid,
+          steps: [%{uuid: step_uuid} = current_step | _]
+        } = automation
+    } do
+      last_step_attempted_at = now()
+      last_step_index = Faker.random_between(0, 10)
+
+      automation = %{
+        automation
+        | last_step_index: last_step_index,
+          last_step_attempted_at: last_step_attempted_at
+      }
+
+      assert {:noreply, automation} ==
+               Handler.handle_continue({:step_skipped, current_step}, automation)
+
+      assert_receive %Event.StepSkipped{
+        automation_uuid: ^automation_uuid,
+        step_uuid: ^step_uuid,
+        index: ^last_step_index,
+        timestamp: ^last_step_attempted_at
+      }
+
+      assert_receive :next_step
     end
+  end
 
-    test "should fire StepStarted event",
-         %{
-           automation:
-             %{
-               uuid: automation_uuid,
-               steps: [%{uuid: step_uuid} = current_step | _],
-               last_step_index: last_step_index
-             } = automation
-         } do
-      now = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
-      current_step_index = last_step_index + 1
-      step_position = current_step_index + 1
+  describe "handle_continue({:step_started, current_step}, automation)" do
+    @describetag :unit
+
+    test "should fire StepStarted event", %{
+      automation:
+        %{
+          uuid: automation_uuid,
+          steps: [%{uuid: step_uuid} = current_step | _]
+        } = automation
+    } do
+      last_step_attempted_at = now()
+      last_step_index = Faker.random_between(0, 10)
+
+      automation = %{
+        automation
+        | last_step_index: last_step_index,
+          last_step_attempted_at: last_step_attempted_at
+      }
 
       assert {:noreply, _, {:continue, {:do_step, ^current_step}}} =
-               Handler.handle_continue({:start_step, current_step}, %{
-                 automation
-                 | last_step_index: current_step_index
-               })
+               Handler.handle_continue({:step_started, current_step}, automation)
 
       assert_receive %Event.StepStarted{
         automation_uuid: ^automation_uuid,
         step_uuid: ^step_uuid,
-        step_position: ^step_position,
-        timestamp: step_started_timestamp
+        index: ^last_step_index,
+        timestamp: ^last_step_attempted_at
       }
+    end
+  end
 
-      assert_in_delta now, step_started_timestamp, 20
+  describe "handle_info(:next_step, automation)" do
+    @describetag :unit
+
+    test "should return {:noreply, automation, {:continue, :next_step}}", %{
+      automation: automation
+    } do
+      assert {:noreply, automation, {:continue, :next_step}} ==
+               Handler.handle_info(:next_step, automation)
     end
   end
 
@@ -168,17 +212,6 @@ defmodule Peasant.Automation.HandlerBasicAutomationProcess do
          } do
       refute {:noreply, %{automation | active: false}} ==
                Handler.handle_continue({:do_step, current_step}, %{automation | active: false})
-    end
-
-    test "should return {:noreply, automation, {:continue, :next_step}} if step is inactive",
-         %{
-           automation:
-             %{
-               steps: [current_step | _]
-             } = automation
-         } do
-      assert {:noreply, automation, {:continue, :next_step}} ==
-               Handler.handle_continue({:do_step, %{current_step | active: false}}, automation)
     end
 
     test "should generate a random reference value, start a timer and return timer reference and reference value in automation",
@@ -204,7 +237,7 @@ defmodule Peasant.Automation.HandlerBasicAutomationProcess do
   describe "handle_continue({:fail_step, current_step, error}, automation)" do
     @describetag :unit
 
-    test "should fire StepFailed event",
+    test "should cast :next_step and fire StepFailed event",
          %{
            automation:
              %{
@@ -214,50 +247,37 @@ defmodule Peasant.Automation.HandlerBasicAutomationProcess do
              } = automation
          } do
       now = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
-      last_step_started_timestamp = now - 1_000
+      last_step_attempted_at = now - 1_000
       current_step_index = last_step_index + 1
-      step_position = current_step_index + 1
       error = [error: "something"]
 
-      assert {:noreply, _, {:continue, :next_step}} =
+      assert {:noreply, _} =
                Handler.handle_continue({:fail_step, step_uuid, error}, %{
                  automation
                  | last_step_index: current_step_index,
-                   last_step_started_timestamp: last_step_started_timestamp
+                   last_step_attempted_at: last_step_attempted_at
                })
 
       assert_receive %Event.StepFailed{
         automation_uuid: ^automation_uuid,
         step_uuid: ^step_uuid,
-        step_position: ^step_position,
+        index: ^current_step_index,
         timestamp: step_finished_timestamp,
         step_duration: step_duration,
         details: ^error
       }
 
       assert_in_delta now, step_finished_timestamp, 20
-      assert_in_delta now - last_step_started_timestamp, step_duration, 20
+      assert_in_delta now - last_step_attempted_at, step_duration, 20
+
+      assert_receive :next_step
     end
   end
 
   describe "handle_continue({:finish_step, step_uuid}, automation)" do
     @describetag :unit
 
-    test "should NOT return {:noreply, automation} if automation went inactive",
-         %{
-           automation:
-             %{
-               steps: [%{uuid: current_step_uuid} | _]
-             } = automation
-         } do
-      refute {:noreply, %{automation | active: false}} ==
-               Handler.handle_continue({:finish_step, current_step_uuid}, %{
-                 automation
-                 | active: false
-               })
-    end
-
-    test "should fire StepStopped event",
+    test "should fire StepStopped event and cast :next_step",
          %{
            automation:
              %{
@@ -266,28 +286,29 @@ defmodule Peasant.Automation.HandlerBasicAutomationProcess do
                last_step_index: last_step_index
              } = automation
          } do
-      now = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
-      last_step_started_timestamp = now - 1_000
+      now = now()
+      last_step_attempted_at = now - 1_000
       current_step_index = last_step_index + 1
-      step_position = current_step_index + 1
 
-      assert {:noreply, _, {:continue, :next_step}} =
+      assert {:noreply, _} =
                Handler.handle_continue({:finish_step, current_step_uuid}, %{
                  automation
                  | last_step_index: current_step_index,
-                   last_step_started_timestamp: last_step_started_timestamp
+                   last_step_attempted_at: last_step_attempted_at
                })
 
       assert_receive %Event.StepStopped{
         automation_uuid: ^automation_uuid,
         step_uuid: ^current_step_uuid,
-        step_position: ^step_position,
+        index: ^current_step_index,
         timestamp: step_finished_timestamp,
         step_duration: step_duration
       }
 
       assert_in_delta now, step_finished_timestamp, 20
-      assert_in_delta now - last_step_started_timestamp, step_duration, 20
+      assert_in_delta now - last_step_attempted_at, step_duration, 20
+
+      assert_receive :next_step
     end
   end
 

@@ -69,9 +69,9 @@ defmodule Peasant.Automation.StateTest do
       assert state.last_step_index == -1
     end
 
-    test "should have :last_step_started_timestamp field", %{state: state} do
-      assert Map.has_key?(state, :last_step_started_timestamp)
-      assert state.last_step_started_timestamp == 0
+    test "should have :last_step_attempted_at field", %{state: state} do
+      assert Map.has_key?(state, :last_step_attempted_at)
+      assert state.last_step_attempted_at == 0
     end
 
     test "should have :timer virtual field", %{state: state} do

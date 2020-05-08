@@ -7,7 +7,7 @@ defmodule Peasant.Automation.State do
     field(:steps, {:array, :map}, default: [])
     field(:total_steps, :integer, default: 0, virtual: true)
     field(:last_step_index, :integer, default: -1)
-    field(:last_step_started_timestamp, :integer, default: 0)
+    field(:last_step_attempted_at, :integer, default: 0)
     field(:active, :boolean, default: false)
     field(:new, :boolean, default: true, virtual: true)
     field(:timer, :any, virtual: true)

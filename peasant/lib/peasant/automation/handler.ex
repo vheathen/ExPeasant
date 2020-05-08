@@ -74,6 +74,17 @@ defmodule Peasant.Automation.Handler do
       else: {:noreply, automation, {:continue, next_action}}
   end
 
+  def handle_continue(:cache_till_reboot, automation),
+    do: handle_continue({:cache_till_reboot, nil}, automation)
+
+  def handle_continue({:cache_till_reboot, next_action}, automation) do
+    automation = Peasant.Repo.put(automation, automation.uuid, @automations, persist: false)
+
+    if is_nil(next_action),
+      do: {:noreply, automation},
+      else: {:noreply, automation, {:continue, next_action}}
+  end
+
   def handle_continue(:created, automation) do
     [automation_uuid: automation.uuid, automation: automation]
     |> Peasant.Automation.Event.Created.new()
@@ -233,34 +244,53 @@ defmodule Peasant.Automation.Handler do
 
     automation = %{
       automation
-      | last_step_index: current_step_index
+      | last_step_index: current_step_index,
+        last_step_attempted_at: now()
     }
 
-    {:noreply, automation, {:continue, {:start_step, current_step}}}
+    {
+      :noreply,
+      automation,
+      {:continue, {:cache_till_reboot, {:maybe_start_step, current_step}}}
+    }
   end
 
-  def handle_continue({_, %Step{active: false}}, automation),
-    do: {:noreply, automation, {:continue, :next_step}}
+  def handle_continue({:maybe_start_step, %Step{active: false} = current_step}, automation),
+    do: {:noreply, automation, {:continue, {:step_skipped, current_step}}}
 
-  def handle_continue({:start_step, _current_step}, %{active: false} = automation),
-    do: {:noreply, automation}
+  def handle_continue({:maybe_start_step, current_step}, automation),
+    do: {:noreply, automation, {:continue, {:step_started, current_step}}}
+
+  # def handle_continue({:maybe_start_step, _current_step}, %{active: false} = automation),
+  #   do: {:noreply, automation}
 
   def handle_continue(
-        {:start_step, current_step},
-        %{last_step_index: current_step_index} = automation
+        {:step_skipped, current_step},
+        automation
       ) do
-    step_started_timestamp = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
-
-    automation = %{
-      automation
-      | last_step_started_timestamp: step_started_timestamp
-    }
-
     [
       automation_uuid: automation.uuid,
       step_uuid: current_step.uuid,
-      step_position: current_step_index + 1,
-      timestamp: step_started_timestamp
+      index: automation.last_step_index,
+      timestamp: automation.last_step_attempted_at
+    ]
+    |> Event.StepSkipped.new()
+    |> notify()
+
+    Process.send(self(), :next_step, [])
+
+    {:noreply, automation}
+  end
+
+  def handle_continue(
+        {:step_started, current_step},
+        automation
+      ) do
+    [
+      automation_uuid: automation.uuid,
+      step_uuid: current_step.uuid,
+      index: automation.last_step_index,
+      timestamp: automation.last_step_attempted_at
     ]
     |> Event.StepStarted.new()
     |> notify()
@@ -289,6 +319,8 @@ defmodule Peasant.Automation.Handler do
         automation
       ) do
     case Peasant.Tool.commit(tool_uuid, action, action_config) do
+      # Cover case with tests
+
       {:error, error} ->
         {:noreply, automation, {:continue, {:fail_step, current_step.uuid, error}}}
 
@@ -303,22 +335,24 @@ defmodule Peasant.Automation.Handler do
       ) do
     finish_step(current_step_uuid, automation)
 
-    {:noreply, automation, {:continue, :next_step}}
+    Process.send(self(), :next_step, [])
+
+    {:noreply, automation}
   end
 
   def handle_continue(
         {:fail_step, current_step_uuid, error},
         %{
           last_step_index: current_step_index,
-          last_step_started_timestamp: step_started_timestamp
+          last_step_attempted_at: step_started_timestamp
         } = automation
       ) do
-    step_stopped_timestamp = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
+    step_stopped_timestamp = now()
 
     [
       automation_uuid: automation.uuid,
       step_uuid: current_step_uuid,
-      step_position: current_step_index + 1,
+      index: current_step_index,
       timestamp: step_stopped_timestamp,
       step_duration: step_stopped_timestamp - step_started_timestamp,
       details: error
@@ -326,7 +360,9 @@ defmodule Peasant.Automation.Handler do
     |> Event.StepFailed.new()
     |> notify()
 
-    {:noreply, automation, {:continue, :next_step}}
+    Process.send(self(), :next_step, [])
+
+    {:noreply, automation}
   end
 
   def handle_call({:rename, new_name}, _from, %{name: new_name} = automation),
@@ -477,6 +513,8 @@ defmodule Peasant.Automation.Handler do
     end
   end
 
+  def handle_info(:next_step, automation), do: {:noreply, automation, {:continue, :next_step}}
+
   def handle_info(
         {:waiting_finished, step_uuid},
         %{
@@ -508,15 +546,15 @@ defmodule Peasant.Automation.Handler do
          current_step_uuid,
          %{
            last_step_index: current_step_index,
-           last_step_started_timestamp: step_started_timestamp
+           last_step_attempted_at: step_started_timestamp
          } = automation
        ) do
-    step_stopped_timestamp = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
+    step_stopped_timestamp = now()
 
     [
       automation_uuid: automation.uuid,
       step_uuid: current_step_uuid,
-      step_position: current_step_index + 1,
+      index: current_step_index,
       timestamp: step_stopped_timestamp,
       step_duration: step_stopped_timestamp - step_started_timestamp
     ]

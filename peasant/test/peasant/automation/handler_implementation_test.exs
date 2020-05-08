@@ -25,20 +25,54 @@ defmodule Peasant.Automation.HandlerImplementationTest do
       assert {:noreply, stored_automation, {:continue, :created}} =
                Handler.handle_continue({:persist, :created}, automation)
 
-      assert automation == stored_automation |> nilify_timestamps()
-
-      assert stored_automation == Peasant.Repo.get(automation.uuid, @automations)
-      assert stored_automation == Peasant.Collection.Keeper.get_by_id(automation.uuid)
+      check_persisted(automation, stored_automation)
     end
 
     test "should persist current state and stop if no next_action or it is nil",
          %{automation: automation} do
       assert {:noreply, stored_automation} = Handler.handle_continue(:persist, automation)
 
+      check_persisted(automation, stored_automation)
+    end
+
+    defp check_persisted(automation, stored_automation) do
       assert automation == stored_automation |> nilify_timestamps()
 
       assert stored_automation == Peasant.Repo.get(automation.uuid, @automations)
       assert stored_automation == Peasant.Collection.Keeper.get_by_id(automation.uuid)
+    end
+  end
+
+  describe "cache_till_reboot" do
+    @describetag :unit
+
+    setup %{automation: automation} do
+      assert {:noreply, stored_automation} = Handler.handle_continue(:persist, automation)
+      [automation: stored_automation]
+    end
+
+    test "should cache current state, do not put into storage if :till_reboot given and continue with the given next action",
+         %{automation: automation} do
+      assert {:noreply, cached_automation, {:continue, :do_step}} =
+               Handler.handle_continue({:cache_till_reboot, :do_step}, %{
+                 automation
+                 | last_step_index: 10
+               })
+
+      check_cached(automation, cached_automation)
+    end
+
+    test "should cache current state, do not put into storage if :till_reboot given and stop if no next_action",
+         %{automation: automation} do
+      assert {:noreply, cached_automation} =
+               Handler.handle_continue(:cache_till_reboot, %{automation | last_step_index: 10})
+
+      check_cached(automation, cached_automation)
+    end
+
+    defp check_cached(automation, cached_automation) do
+      assert cached_automation == Peasant.Repo.get(automation.uuid, @automations)
+      refute cached_automation == Peasant.Collection.Keeper.get_by_id(automation.uuid)
     end
   end
 
