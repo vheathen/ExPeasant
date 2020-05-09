@@ -47,6 +47,7 @@ defmodule Peasant.Tool.Handler do
 
   def handle_continue(:registered, %_{} = tool) do
     event = Peasant.Tool.Event.Registered.new(tool_uuid: tool.uuid, details: %{tool: tool})
+
     notify(event)
 
     {:noreply, tool}
@@ -67,8 +68,20 @@ defmodule Peasant.Tool.Handler do
         _ -> action.run(tool, action_ref, action_config)
       end
 
-    notify(events)
+    {:noreply, tool,
+     {:continue, {:maybe_persist, action.persist_after?(tool), {:notify, events}}}}
+  end
 
+  def handle_continue({:maybe_persist, true, next_action}, tool) do
+    {:noreply, tool, {:continue, {:persist, next_action}}}
+  end
+
+  def handle_continue({:maybe_persist, false, next_action}, tool) do
+    {:noreply, tool, {:continue, next_action}}
+  end
+
+  def handle_continue({:notify, events}, tool) do
+    notify(events)
     {:noreply, tool}
   end
 

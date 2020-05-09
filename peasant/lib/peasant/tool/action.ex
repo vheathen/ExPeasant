@@ -41,6 +41,8 @@ defmodule Peasant.Tool.Action do
 
   @callback template(tool :: Peasant.Tool.t()) :: action_config_template()
 
+  @callback persist_after?(tool :: Peasant.Tool.t()) :: boolean()
+
   ### To insert into defprotocol:
   ##
   # defprotocol Peasant.Tool.Action._ACTION_NAME_ do

@@ -13,6 +13,8 @@ defimpl Peasant.Tool.Action.TurnOff, for: Peasant.Tools.SimpleRelay do
 
   def template(_tool), do: %{}
 
+  def persist_after?(_tool), do: false
+
   defp turn_off(%{config: %{pin: pin}}) do
     {:ok, pin_ref} = Circuits.GPIO.open(pin, :output)
     Circuits.GPIO.write(pin_ref, 0)

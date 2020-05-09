@@ -8,4 +8,6 @@ defprotocol Peasant.Tool.Action.TurnOn do
   def resulting_events(tool)
 
   def template(tool)
+
+  def persist_after?(tool)
 end

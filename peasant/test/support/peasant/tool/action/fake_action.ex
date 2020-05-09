@@ -11,4 +11,5 @@ defprotocol Peasant.Tool.Action.FakeAction do
   def run(tool, action_ref)
   def resulting_events(tool)
   def template(tool)
+  def persist_after?(tool)
 end

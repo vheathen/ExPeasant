@@ -15,7 +15,8 @@ defmodule Peasant.Tool.Action.AllActionsDefinitionTest do
   @expected_funs [
     [run: 2, run: 3],
     resulting_events: 1,
-    template: 1
+    template: 1,
+    persist_after?: 1
   ]
 
   test "all actions must define all of the expected funcs" do

@@ -17,6 +17,7 @@ defprotocol Peasant.Tool.Action.Attach do
   def run(tool, action_ref)
   def resulting_events(tool)
   def template(tool)
+  def persist_after?(tool)
 end
 
 defimpl Peasant.Tool.Action.Attach, for: Any do
@@ -29,6 +30,8 @@ defimpl Peasant.Tool.Action.Attach, for: Any do
 
   def resulting_events(_tool), do: [Attached]
   def template(_tool), do: %{}
+
+  def persist_after?(_tool), do: true
 end
 
 # defmodule Peasant.Tool.Action.Attach.Meta do

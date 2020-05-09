@@ -23,4 +23,6 @@ defimpl Peasant.Tool.Action.FakeAction, for: Peasant.Tools.FakeTool do
   def resulting_events(_tool), do: [Event.FakeSuccess, Event.FakeFailure]
 
   def template(_tool), do: %{}
+
+  def persist_after?(_tool), do: false
 end

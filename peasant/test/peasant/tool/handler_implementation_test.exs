@@ -21,7 +21,7 @@ defmodule Peasant.Tool.HandlerImplementationTest do
     [tool: make_tool(context)]
   end
 
-  describe "persist" do
+  describe "handle_continue(:persist, tool)" do
     @describetag :unit
 
     setup :register_tool_setup
@@ -159,21 +159,21 @@ defmodule Peasant.Tool.HandlerImplementationTest do
       refute_receive _, 10
     end
 
-    test "should fire returned from action implementation events and put a new tool structure into the state",
+    test "should continue with :maybe_persist, with next notify about events returned from action implementation further and put a new tool structure into the state",
          %{tool: tool} do
       action = Action.FakeAction
       action_config = %{}
       action_ref = UUID.uuid4()
 
-      assert {:ok, new_tool, [event]} = Action.FakeAction.run(tool, action_ref)
+      assert {:ok, new_tool, events} = Action.FakeAction.run(tool, action_ref)
 
-      assert {:noreply, new_tool} ==
+      assert {:noreply, new_tool, {:continue, {:maybe_persist, false, {:notify, events}}}} ==
                Handler.handle_continue({:commit, action, action_config, action_ref}, tool)
 
-      assert_receive ^event
+      refute_receive _, 10
     end
 
-    test "should fire returned from action implementation events and put a new tool structure into the state 2",
+    test "should continue with :maybe_persist, with next notify about events returned from action implementation further and put a new tool structure into the state 2",
          %{tool: %{config: config} = tool} do
       action = Action.FakeAction
       action_config = %{}
@@ -184,12 +184,55 @@ defmodule Peasant.Tool.HandlerImplementationTest do
 
       tool = %{tool | config: config, attached: true}
 
-      assert {:ok, ^tool, [event]} = Action.FakeAction.run(tool, action_ref)
+      assert {:ok, ^tool, events} = Action.FakeAction.run(tool, action_ref)
 
-      assert {:noreply, tool} ==
+      assert {:noreply, tool, {:continue, {:maybe_persist, false, {:notify, events}}}} ==
                Handler.handle_continue({:commit, action, action_config, action_ref}, tool)
 
-      assert_receive ^event
+      refute_receive _, 10
+    end
+
+    test "should continue with {:maybe_persist, true, _} for the actions require persist",
+         %{tool: tool} do
+      action = Action.Attach
+      action_config = %{}
+      action_ref = UUID.uuid4()
+
+      assert {:noreply, tool, {:continue, {:maybe_persist, true, _}}} =
+               Handler.handle_continue({:commit, action, action_config, action_ref}, tool)
+
+      refute_receive _, 10
+    end
+  end
+
+  describe "handle_continue({:maybe_persist, persist?, next_action}, tool)" do
+    @describetag :unit
+
+    setup :commit_action_setup
+
+    test "should continue with next_action if persist? is false", %{tool: tool} do
+      assert {:noreply, tool, {:continue, :next_action}} ==
+               Handler.handle_continue({:maybe_persist, false, :next_action}, tool)
+    end
+
+    test "should continue with {:persist, next_action} if persist? is true", %{tool: tool} do
+      assert {:noreply, tool, {:continue, {:persist, :next_action}}} ==
+               Handler.handle_continue({:maybe_persist, true, :next_action}, tool)
+    end
+  end
+
+  describe "handle_continue({:notify, events}, tool)" do
+    @describetag :unit
+
+    setup :commit_action_setup
+
+    test "should notify about given events", %{tool: tool} do
+      events = 1..Enum.random(1..10) |> Enum.map(fn _ -> Faker.Lorem.word() end)
+
+      assert {:noreply, tool} ==
+               Handler.handle_continue({:notify, events}, tool)
+
+      Enum.each(events, &assert_receive(^&1))
     end
   end
 
