@@ -30,5 +30,13 @@ defmodule Peasant.ToolsTest do
 
       assert [%FakeTool{uuid: ^tool_uuid}] = Tools.list()
     end
+
+    test "should have get/1" do
+      {:ok, tool_uuid} = Peasant.Tool.register(FakeTool, new_tool())
+
+      assert_receive %Peasant.Tool.Event.Registered{}
+
+      assert %FakeTool{uuid: ^tool_uuid} = Tools.get(tool_uuid)
+    end
   end
 end

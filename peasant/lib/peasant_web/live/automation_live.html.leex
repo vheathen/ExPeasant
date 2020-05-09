@@ -1,0 +1,135 @@
+<div class="tabular-page automations">
+  <%= cond do %>
+    <% @uuid && is_nil(@automation) -> %>
+
+    <div class="alert alert-danger" role="alert">
+      <div class="display-4">Automation not found!</div>
+    </div>
+    <%= live_redirect("Go to automations", to: Routes.live_peasant_path(@socket, :automations)) %>
+
+    <% @automation.new -> %>
+    <h5 class="card-title">New automation</h5>
+    <%= f = form_for @changeset, "#",
+      id: "automation_form",
+      phx_change: "validate",
+      phx_submit: "create" %>
+
+    <fieldset <%= @form_disabled && "disabled='disabled'" %>>
+
+      <div class="form-group">
+        <%= label f, :name %>
+        <%= text_input f, :name, class: "form-control" %>
+        <%= error_tag f, :name %>
+      </div>
+
+      <div class="form-group">
+        <%= label f, :description %>
+        <%= textarea f, :description, class: "form-control" %>
+        <%= error_tag f, :description %>
+      </div>
+
+      <%= submit "Create", class: "btn btn-primary btn-block", phx_disable_with: "Creating..."%>
+
+    </fieldset>
+  </form>
+
+  <% true -> %>
+
+  <h5 class="card-title"><small>Automations -> </small><%= @automation.name %></h5>
+
+  <p><%= @automation.description %></p>
+
+  <p>
+    <span class="text-<%= active_color(@automation.active) %>"><%= @automation.active && "Active" || "Disabled" %></span> |
+    <small>Total steps: </small><%= @automation.total_steps %> |
+    <small>Updated at: </small><%= format_timestamp(@automation.updated_at) %>
+  </p>
+
+  <h6 class="card-title">Steps</h6>
+
+  <div class="card tabular-card mb-4 mt-4">
+    <div class="card-body p-0">
+      <div class="dash-table-wrapper">
+        <table class="table table-hover mt-0 dash-table clickable-rows">
+          <thead>
+            <tr>
+              <th rowspan="2">
+                #
+              </th>
+              <th>
+                <%= hint do %>
+                  Step type: Action or Waiting
+                <% end %>
+              </th>
+              <th>
+                Action
+              </th>
+              <th>
+                Tool name
+              </th>
+              <th>
+                Tool type
+              </th>
+              <th>
+                Action details
+              </th>
+              <th>
+                Duration
+                <%= hint do %>
+                  Step last duration or time to finish
+                <% end %>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <%= for {s, index} <- Enum.with_index(@automation.steps) do %>
+              <tr class="text-<%= active_color(s.active) %> <%= current_step_bg(s.uuid == @current_step_uuid) %>">
+                <td class="tabular-column-name pl-4">
+                  <%= index + 1 %>
+                </td>
+                <td class="tabular-column-name step-type">
+                  <%= step_type(s.type) %>
+                </td>
+
+                <%= if s.type == "action" do %>
+                  <% {tool_type, tool_name} = get_tool_details(s) %>
+                  <td>
+                    <%= s.action %>
+                  </td>
+                  <td>
+                    <%= tool_name %>
+                  </td>
+                  <td>
+                    <%= tool_type %>
+                  </td>
+                  <td>
+                    <%= inspect(s.action_config) %>
+                  </td>
+
+                <% else %>
+
+                  <td colspan="4">Wait for <b><%= format_number(s.time_to_wait) %></b> ms</td>
+
+                <% end %>
+                <td>
+                  <%= if s.uuid == @current_step_uuid do %>
+                    <%=
+                      case s.type do
+                        "action" -> @current_step_duration
+                        "awaiting" -> s.time_to_wait - @current_step_duration
+                      end
+                      %>
+                  <% else %>
+                    <%= @steps_log[s.uuid] || "" %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<% end %>
+</div>

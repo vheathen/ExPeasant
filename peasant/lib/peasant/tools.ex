@@ -13,4 +13,8 @@ defmodule Peasant.Tools do
   def list do
     Repo.list(@tools)
   end
+
+  def get(uuid) do
+    Repo.get(uuid, @tools)
+  end
 end

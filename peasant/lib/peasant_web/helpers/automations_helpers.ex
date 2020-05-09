@@ -3,6 +3,10 @@ defmodule PeasantWeb.AutomationsHelpers do
 
   alias Peasant.Automations
 
+  def get_automation(uuid) do
+    Automations.get(uuid)
+  end
+
   def list_automations(search, sort_by, sort_dir, limit, offset \\ 0) do
     sorter = if sort_dir == :asc, do: &<=/2, else: &>=/2
 

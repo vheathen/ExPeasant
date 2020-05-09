@@ -18,7 +18,7 @@
 - [X] steps
 - [X] total_steps
 - [X] last_step_index # default: -1
-- [X] last_step_started_timestamp
+- [X] last_step_attempted_at
 - [X] active
 - [X] new
 - [X] timer

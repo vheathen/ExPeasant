@@ -3,6 +3,8 @@ defmodule PeasantWeb.ToolsHelpers do
 
   alias Peasant.Tools
 
+  def get_tool(uuid), do: Tools.get(uuid)
+
   def list_tools(search, sort_by, sort_dir, limit, offset \\ 0) do
     sorter = if sort_dir == :asc, do: &<=/2, else: &>=/2
 

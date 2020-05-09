@@ -56,6 +56,12 @@ defmodule Peasant.Collection.ObserverTest do
     end
   end
 
+  test "it should populate all tools" do
+    tools =
+      for {action, tools} <- Peasant.Tools.actions() do
+      end
+  end
+
   describe "current_state/0" do
     @describetag :integration
 

@@ -26,7 +26,7 @@ defmodule PeasantWeb.AutomationsLive do
 
     Peasant.subscribe(@automations)
 
-    {:ok, socket}
+    {:ok, assign(socket, params: %{})}
   end
 
   @impl true
@@ -54,16 +54,16 @@ defmodule PeasantWeb.AutomationsLive do
   end
 
   @impl true
-  # def handle_info(%Tool.Registered{}, socket),
-  #   do: {:noreply, fetch_tools(socket)}
+  def handle_info(%Automation.Created{}, socket),
+    do: {:noreply, fetch_automations(socket)}
 
-  # def handle_info(%Tool.Attached{tool_uuid: uuid}, socket) do
-  #   tools =
-  #     socket.assigns.tools
-  #     |> update_tool(uuid, &%{&1 | attached: true})
+  def handle_info(%Automation.Activated{automation_uuid: uuid}, socket) do
+    tools =
+      socket.assigns.automations
+      |> update_automation(uuid, &%{&1 | active: true})
 
-  #   {:noreply, assign(socket, tools: tools)}
-  # end
+    {:noreply, assign(socket, tools: tools)}
+  end
 
   def handle_info(:refresh, socket) do
     {:noreply, fetch_automations(socket)}

@@ -53,3 +53,7 @@
 .bg-gradient-dark-gray {
   background: linear-gradient(40deg, $color-dark-gray, adjust-color($color-dark-gray, $lightness: +10%));
 }
+
+.bg-lightgreen {
+  background-color: lightgreen;
+}

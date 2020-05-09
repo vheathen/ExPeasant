@@ -46,6 +46,7 @@ defmodule Peasant.MixProject do
       {:plug_cowboy, "~> 2.0"},
 
       # custom
+      {:phoenix_ecto, "~> 4.0"},
       {:phoenix_pubsub, "~> 2.0"},
       {:ecto, "~> 3.4.0"},
       {:elixir_uuid, "~> 1.2"},

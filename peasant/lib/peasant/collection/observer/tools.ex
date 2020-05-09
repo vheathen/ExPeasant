@@ -1,45 +1,45 @@
-defmodule Peasant.Collection.Observer.Tools do
-  use GenServer, restart: :transient
+# defmodule Peasant.Collection.Observer.Tools do
+#   use GenServer, restart: :transient
 
-  alias Peasant.Tool.Event, as: Tool
+#   alias Peasant.Tool.Event, as: Tool
 
-  alias Peasant.Repo
+#   alias Peasant.Repo
 
-  @tools Peasant.Tool.domain()
+#   @tools Peasant.Tool.domain()
 
-  @default_state %{}
+#   @default_state %{}
 
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
-  end
+#   def start_link(_) do
+#     GenServer.start_link(__MODULE__, [], name: __MODULE__)
+#   end
 
-  def init(_) do
-    Peasant.subscribe(@tools)
+#   def init(_) do
+#     Peasant.subscribe(@tools)
 
-    {:ok, @default_state}
-  end
+#     {:ok, @default_state}
+#   end
 
-  ######################### ############
-  ######################### Tools domain
-  #########################
+#   ######################### ############
+#   ######################### Tools domain
+#   #########################
 
-  def handle_info(%Tool.Registered{details: %{tool: tool}}, collection) do
-    Repo.maybe_persist(tool, tool.uuid, @tools)
+#   def handle_info(%Tool.Registered{details: %{tool: tool}}, collection) do
+#     Repo.maybe_persist(tool, tool.uuid, @tools)
 
-    {:noreply, collection}
-  end
+#     {:noreply, collection}
+#   end
 
-  def handle_info(%Tool.Attached{tool_uuid: uuid}, collection) do
-    %{Repo.get(uuid, @tools) | attached: true}
-    |> Repo.maybe_persist(uuid, @tools)
+#   def handle_info(%Tool.Attached{tool_uuid: uuid}, collection) do
+#     %{Repo.get(uuid, @tools) | attached: true}
+#     |> Repo.maybe_persist(uuid, @tools)
 
-    {:noreply, collection}
-  end
+#     {:noreply, collection}
+#   end
 
-  #########################
-  ######################### Tools domain
-  ######################### ############
+#   #########################
+#   ######################### Tools domain
+#   ######################### ############
 
-  # pass all other events
-  def handle_info(_, collection), do: {:noreply, collection}
-end
+#   # pass all other events
+#   def handle_info(_, collection), do: {:noreply, collection}
+# end

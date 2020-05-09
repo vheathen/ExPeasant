@@ -20,7 +20,7 @@ defmodule PeasantWeb.MenuLive do
   end
 
   defp maybe_active_live_redirect(socket, menu, text, action) do
-    if menu.action == action do
+    if menu.action == action || (is_list(action) && menu.action in action) do
       content_tag(:div, text, class: "menu-item active")
     else
       live_redirect(text, to: Routes.live_peasant_path(socket, action), class: "menu-item")
