@@ -11,3 +11,7 @@
 .phx-disconnected *{
   pointer-events: none;
 }
+
+.alert:empty {
+  display: none;
+}
