@@ -1,26 +1,25 @@
-<%= if false do %>
-  <main role="main" class="container">
-    <p class="alert alert-info" role="alert"
-    phx-click="lv:clear-flash"
-    phx-value-key="info"><%= live_flash(@flash, :info) %></p>
-
-    <p class="alert alert-danger" role="alert"
-    phx-click="lv:clear-flash"
-    phx-value-key="error"><%= live_flash(@flash, :error) %></p>
-
-    <%= @inner_content %>
-  </main>
-<% end %>
-
 <header class="d-flex">
   <div class="container d-flex flex-column">
     <h1>
-      <span class="header-title-part">Tech'n'Plants </span>
-      <span class="header-title-part">Peasant<span>
-        </h1>
-        <%= live_render @socket, PeasantWeb.MenuLive, id: "menu", session: %{"menu" => @menu} %>
-      </div>
-    </header>
-    <section id="main" role="main" class="container">
-      <%= @inner_content %>
-    </section>
+      <span class="header-title-part">Tech'n'Plants</span>
+      <span class="header-title-part">Peasant</span>
+    </h1>
+    <%= live_render @socket, PeasantWeb.MenuLive, id: "menu", session: %{"menu" => @menu} %>
+  </div>
+</header>
+
+<section id="main" role="main" class="container">
+  <div class="alert alert-success" role="alert"
+    phx-click="lv:clear-flash"
+    phx-value-key="success"><%= live_flash(@flash, :success) %></div>
+
+  <div class="alert alert-info" role="alert"
+    phx-click="lv:clear-flash"
+    phx-value-key="info"><%= live_flash(@flash, :info) %></div>
+
+  <div class="alert alert-danger" role="alert"
+    phx-click="lv:clear-flash"
+    phx-value-key="error"><%= live_flash(@flash, :error) %></div>
+
+  <%= @inner_content %>
+</section>

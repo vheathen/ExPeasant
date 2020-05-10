@@ -1,13 +1,20 @@
 <div class="tabular-page automations">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><%= live_redirect("Automations", to: Routes.live_peasant_path(@socket, :automations)) %></li>
+      <li class="breadcrumb-item active" aria-current="page"><%= @page_title %></li>
+    </ol>
+  </nav>
+
   <%= cond do %>
     <% @uuid && is_nil(@automation) -> %>
 
     <div class="alert alert-danger" role="alert">
       <div class="display-4">Automation not found!</div>
     </div>
-    <%= live_redirect("Go to automations", to: Routes.live_peasant_path(@socket, :automations)) %>
 
     <% @automation.new -> %>
+
     <h5 class="card-title">New automation</h5>
     <%= f = form_for @changeset, "#",
       id: "automation_form",
@@ -35,101 +42,135 @@
 
   <% true -> %>
 
-  <h5 class="card-title"><small>Automations -> </small><%= @automation.name %></h5>
+  <h4><%= @automation.name %></h5>
 
   <p><%= @automation.description %></p>
 
-  <p>
-    <span class="text-<%= active_color(@automation.active) %>"><%= @automation.active && "Active" || "Disabled" %></span> |
-    <small>Total steps: </small><%= @automation.total_steps %> |
-    <small>Updated at: </small><%= format_timestamp(@automation.updated_at) %>
-  </p>
+  <button phx-click="revert_state" type="button" class='mb-4 btn btn-<%= @automation.active && "success" || "dark" %>'>
+    <%= @automation.active && "Active" || "Inactive" %>
+    <span class="badge badge-<%= @automation.active && "dark" || "success" %>">
+      Press to <%= @automation.active && "deactivate" || "activate" %>
+    </span>
+  </button>
 
-  <h6 class="card-title">Steps</h6>
-
-  <div class="card tabular-card mb-4 mt-4">
-    <div class="card-body p-0">
-      <div class="dash-table-wrapper">
-        <table class="table table-hover mt-0 dash-table clickable-rows">
-          <thead>
-            <tr>
-              <th rowspan="2">
-                #
-              </th>
-              <th>
-                <%= hint do %>
-                  Step type: Action or Waiting
-                <% end %>
-              </th>
-              <th>
-                Action
-              </th>
-              <th>
-                Tool name
-              </th>
-              <th>
-                Tool type
-              </th>
-              <th>
-                Action details
-              </th>
-              <th>
-                Duration
-                <%= hint do %>
-                  Step last duration or time to finish
-                <% end %>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <%= for {s, index} <- Enum.with_index(@automation.steps) do %>
-              <tr class="text-<%= active_color(s.active) %> <%= current_step_bg(s.uuid == @current_step_uuid) %>">
-                <td class="tabular-column-name pl-4">
-                  <%= index + 1 %>
-                </td>
-                <td class="tabular-column-name step-type">
-                  <%= step_type(s.type) %>
-                </td>
-
-                <%= if s.type == "action" do %>
-                  <% {tool_type, tool_name} = get_tool_details(s) %>
-                  <td>
-                    <%= s.action %>
-                  </td>
-                  <td>
-                    <%= tool_name %>
-                  </td>
-                  <td>
-                    <%= tool_type %>
-                  </td>
-                  <td>
-                    <%= inspect(s.action_config) %>
-                  </td>
-
-                <% else %>
-
-                  <td colspan="4">Wait for <b><%= format_number(s.time_to_wait) %></b> ms</td>
-
-                <% end %>
-                <td>
-                  <%= if s.uuid == @current_step_uuid do %>
-                    <%=
-                      case s.type do
-                        "action" -> @current_step_duration
-                        "awaiting" -> s.time_to_wait - @current_step_duration
-                      end
-                      %>
-                  <% else %>
-                    <%= @steps_log[s.uuid] || "" %>
-                  <% end %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <div class="mb-4">
+    <span class="badge badge-info">
+      <small>Total steps: </small><%= @automation.total_steps %>
+    </span>
+    <span class="badge badge-info">
+      <small>Updated at: </small><%= format_timestamp(@automation.updated_at) %>
+    </span>
+    <span class="badge badge-info">
+      <small>Created at: </small><%= format_timestamp(@automation.inserted_at) %>
+    </span>
   </div>
+
+  <h5 class="card-title">Steps</h5>
+
+  <%= for {s, index} <- Enum.with_index(@automation.steps) do %>
+
+    <div class="card mb-2 text-<%= active_color(s.active) %> <%= current_step_bg(s.uuid == @current_step_uuid) %>">
+      <div class="card-body">
+
+        <div class="row">
+
+          <div class="col-1">
+            <div class="row mb-2">
+              <div class="col-8 text-right">
+                <%= index + 1 %>
+              </div>
+              <div class="col-4 p-0 text-center">
+                <i class="<%= s.type == "awaiting" && "far fa-clock" || "fas fa-cogs" %>"></i>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col text-right pl-0">
+                <div class="badge badge-pill badge-<%= s.active && "success" || "secondary" %>">
+                  <small><%= s.active && "Active" || "Disabled" %></small>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col text-right p-0">
+                <button
+                  phx-click="revert_step_state"
+                  phx-value-uuid="<%= s.uuid %>"
+                  phx-value-index="<%= index %>"
+                  title="<%= s.active && "Disable step" || "Enable step" %>"
+                  type="button"
+                  class="pl-1 pr-1 btn btn-link text-<%= s.active && "secondary" || "success" %>" <%= @automation.active && "disabled" || "" %>>
+                  <i class="fas fa-<%= s.active && "pause" || "play" %>"></i>
+                </button>
+
+                <button
+                  phx-click="delete_step"
+                  phx-value-uuid="<%= s.uuid %>"
+                  data-confirm="Are you sure you want to delete step # <%= index + 1 %>?"
+                  title="Delete step"
+                  type="button"
+                  class="pl-1 pr-1 btn btn-link text-danger" <%= @automation.active && "disabled" || "" %>>
+                  <i class="far fa-trash-alt"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="col-11">
+
+            <div class="row mb-2">
+
+              <%= if s.type == "action" do %>
+                <% {tool_type, tool_name} = get_tool_details(s) %>
+
+                <div class="col-4">
+                  <small>Action:</small><br />
+                  <%= s.action %>
+                </div>
+                <div class="col-4">
+                  <small>Tool name:</small><br />
+                  <%= tool_name %>
+                </div>
+                <div class="col-4">
+                  <small>Tool type:</small><br />
+                  <%= tool_type %>
+                </div>
+
+              <% else %>
+
+                <div class="col-12">
+                  Wait for <b><%= format_number(s.time_to_wait) %></b> ms
+                </div>
+
+              <% end %>
+
+            </div>
+
+            <div class="row">
+              <div class="col-8">
+                <small>
+                  Description:<br />
+                  <%= s.description %>
+                </small>
+              </div>
+
+              <div class="col-4">
+                <%= raw(step_info(@current_step_uuid, s, @current_step_duration, @steps_log )) %>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  <% end %>
 
 <% end %>
 </div>

@@ -66,6 +66,7 @@ defmodule PeasantWeb.AutomationLive do
         changeset: %State{} |> Peasant.Automations.change_automation(),
         uuid: nil
       )
+      |> set_page_title()
 
   defp fetch_automation(socket, uuid) do
     assign(
@@ -73,6 +74,7 @@ defmodule PeasantWeb.AutomationLive do
       automation: get_automation(uuid),
       uuid: uuid
     )
+    |> set_page_title()
   end
 
   defp maybe_activate(
@@ -116,6 +118,41 @@ defmodule PeasantWeb.AutomationLive do
 
   def handle_event("create", %{"state" => automation_params}, socket) do
     {:noreply, create_automation(socket, automation_params)}
+  end
+
+  def handle_event("revert_state", _value, socket) do
+    message =
+      case socket.assigns.automation.active do
+        true ->
+          Peasant.Automation.deactivate(socket.assigns.uuid)
+          "Automation deactivated"
+
+        _ ->
+          Peasant.Automation.activate(socket.assigns.uuid)
+          "Automation activated"
+      end
+
+    {:noreply, put_flash(socket, :success, message)}
+  end
+
+  def handle_event("delete_step", %{"uuid" => step_uuid}, socket) do
+    Peasant.Automation.delete_step(socket.assigns.uuid, step_uuid)
+
+    {:noreply, put_flash(socket, :success, "Step deleted")}
+  end
+
+  def handle_event("revert_step_state", %{"uuid" => step_uuid, "index" => step_index}, socket) do
+    step = Enum.at(socket.assigns.automation.steps, String.to_integer(step_index))
+
+    case step.active do
+      true ->
+        Peasant.Automation.deactivate_step(socket.assigns.uuid, step_uuid)
+
+      _ ->
+        Peasant.Automation.activate_step(socket.assigns.uuid, step_uuid)
+    end
+
+    {:noreply, socket}
   end
 
   defp create_automation(socket, automation_params) do
@@ -193,8 +230,7 @@ defmodule PeasantWeb.AutomationLive do
         %Automation.StepStarted{
           automation_uuid: uuid,
           step_uuid: step_uuid,
-          timestamp: current_step_started_at,
-          index: index
+          timestamp: current_step_started_at
         },
         %{assigns: %{uuid: uuid}} = socket
       ) do
@@ -208,8 +244,7 @@ defmodule PeasantWeb.AutomationLive do
         %Automation.StepStopped{
           automation_uuid: uuid,
           step_uuid: step_uuid,
-          step_duration: duration,
-          index: index
+          step_duration: duration
         },
         %{assigns: %{uuid: uuid, steps_log: steps_log}} = socket
       ) do
@@ -230,7 +265,6 @@ defmodule PeasantWeb.AutomationLive do
           automation_uuid: uuid,
           step_uuid: step_uuid,
           step_duration: _duration,
-          index: index,
           details: error
         },
         %{assigns: %{uuid: uuid, steps_log: steps_log}} = socket
@@ -356,6 +390,60 @@ defmodule PeasantWeb.AutomationLive do
         current_step_uuid: step_uuid,
         current_step_duration: now() - current_step_started_at
       )
+
+  defp set_page_title(socket) do
+    title =
+      cond do
+        socket.assigns.uuid && is_nil(socket.assigns.automation) -> "Not found"
+        socket.assigns.automation.new -> "New automation"
+        true -> socket.assigns.automation.name
+      end
+
+    assign(socket, page_title: title)
+  end
+
+  defp step_info(
+         uuid,
+         %{uuid: uuid, type: "action"} = _step,
+         current_step_duration,
+         _
+       ) do
+    """
+    <small>Duration:</small><br />
+    #{format_number(current_step_duration)} ms
+    """
+  end
+
+  defp step_info(
+         uuid,
+         %{uuid: uuid, type: "awaiting"} = step,
+         current_step_duration,
+         _
+       ) do
+    """
+    <small>Time left:</small><br />
+    #{format_number(step.time_to_wait - current_step_duration)} ms
+    """
+  end
+
+  defp step_info(_uuid, %{uuid: uuid} = _step, _current_step_duration, steps_log) do
+    cond do
+      steps_log[uuid] && is_number(steps_log[uuid]) ->
+        """
+        <small>Last duration:</small><br />
+        #{format_number(steps_log[uuid])} ms
+        """
+
+      steps_log[uuid] ->
+        """
+        <small>Last run details:</small><br />
+        #{steps_log[uuid]}
+        """
+
+      true ->
+        ""
+    end
+  end
 
   defp now,
     do: DateTime.utc_now() |> DateTime.to_unix(:millisecond)
