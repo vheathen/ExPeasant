@@ -32,7 +32,7 @@ defmodule Peasant.Collection.Keeper do
     now = DateTime.now!("Etc/UTC")
 
     updated_at = now
-    inserted_at = Map.get(record, :inserted_at, now)
+    inserted_at = Map.get(record, :inserted_at) || now
 
     record = %{record | updated_at: updated_at, inserted_at: inserted_at}
 
