@@ -1,7 +1,33 @@
 <div class="tabular-page automations">
   <h5 class="card-title">Automations</h5>
 
-  <!--
+  <div class="row">
+    <div class="col-md-4">
+
+      <form phx-change="select_limit" class="form-inline">
+        <div class="form-row align-items-center">
+          <div class="col-auto">Showing at most</div>
+          <div class="col-auto">
+            <div class="input-group input-group-sm">
+              <select name="limit" class="custom-select" id="limit-select">
+                <%= options_for_select(limit_options(), @params.limit) %>
+              </select>
+            </div>
+          </div>
+          <div class="col-auto">
+            automations out of <%= @total %>
+          </div>
+        </div>
+      </form>
+
+    </div>
+
+    <div class="col-md-4 text-center">
+      <%= live_redirect("Add automation", to: Routes.live_peasant_path(@socket, :automation), class: "btn btn-link") %>
+    </div>
+
+    <div class="col-md-4 text-center">
+      <!--
       <div class="tabular-search">
         <form phx-change="search" phx-submit="search" class="form-inline">
           <div class="form-row align-items-center">
@@ -12,22 +38,8 @@
         </form>
       </div>
 -->
-
-  <form phx-change="select_limit" class="form-inline">
-    <div class="form-row align-items-center">
-      <div class="col-auto">Showing at most</div>
-      <div class="col-auto">
-        <div class="input-group input-group-sm">
-          <select name="limit" class="custom-select" id="limit-select">
-            <%= options_for_select(limit_options(), @params.limit) %>
-          </select>
-        </div>
-      </div>
-      <div class="col-auto">
-        automations out of <%= @total %>
-      </div>
     </div>
-  </form>
+  </div>
 
   <%= if false do # @port do %>
     <%= live_modal @socket, SocketInfoComponent,
@@ -65,7 +77,7 @@
           </thead>
           <tbody>
             <%= for a <- @automations do %>
-              <tr>
+              <tr phx-click="go_to_automation" phx-value-uuid="<%= a.uuid %>" phx-page-loading>
                 <td class="tabular-column-name pl-4">
                   <div class="automation-status-color bg-<%= active_color(a.active) %> mr-2"></div>
                 </td>

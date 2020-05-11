@@ -75,6 +75,10 @@ defmodule PeasantWeb.AutomationsLive do
     {:noreply, push_patch(socket, to: self_path(socket, %{params | limit: limit}))}
   end
 
+  def handle_event("go_to_automation", %{"uuid" => uuid}, socket) do
+    {:noreply, push_redirect(socket, to: live_peasant_path(socket, :automation, [uuid]))}
+  end
+
   defp self_path(socket, params) do
     live_peasant_path(socket, :automations, [], params)
   end
