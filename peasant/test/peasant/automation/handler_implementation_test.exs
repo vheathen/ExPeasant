@@ -169,16 +169,32 @@ defmodule Peasant.Automation.HandlerImplementationTest do
   describe "activate and basic automation process" do
     @describetag :unit
 
+    setup %{automation_created: %{automation: automation}} do
+      automation = %{automation | steps: [new_step_struct()], total_steps: 1}
+
+      [automation: automation]
+    end
+
     test "should reply :ok without :continue if automation already active",
-         %{automation_created: %{automation: automation}} do
+         %{automation: automation} do
       assert {:reply, :ok, %{automation | active: true}} ==
                Handler.handle_call(:activate, self(), %{automation | active: true})
 
       refute_receive _, 10
     end
 
+    test "should reply {:error, error_message} without :continue if automation doesn't contain any steps",
+         %{automation: automation} do
+      automation = %{automation | steps: []}
+
+      assert {:reply, {:error, "automation doesn't contain any steps"}, automation} ==
+               Handler.handle_call(:activate, self(), automation)
+
+      refute_receive _, 10
+    end
+
     test "should set automation :active to true and return {:reply, :ok, {:continue, {:persist, :activated}}}",
-         %{automation_created: %{automation: automation}} do
+         %{automation: automation} do
       assert {
                :reply,
                :ok,
@@ -190,7 +206,7 @@ defmodule Peasant.Automation.HandlerImplementationTest do
     end
 
     test "should reset :last_step_index to -1 and continue with :next_step ",
-         %{automation_created: %{automation: automation}} do
+         %{automation: automation} do
       assert {
                :noreply,
                %{automation | last_step_index: -1},

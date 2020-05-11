@@ -121,18 +121,20 @@ defmodule PeasantWeb.AutomationLive do
   end
 
   def handle_event("revert_state", _value, socket) do
-    message =
+    {type, message} =
       case socket.assigns.automation.active do
         true ->
           Peasant.Automation.deactivate(socket.assigns.uuid)
-          "Automation deactivated"
+          {:success, "Automation deactivated"}
 
         _ ->
-          Peasant.Automation.activate(socket.assigns.uuid)
-          "Automation activated"
+          case Peasant.Automation.activate(socket.assigns.uuid) do
+            :ok -> {:success, "Automation activated"}
+            {:error, error} -> {:error, error}
+          end
       end
 
-    {:noreply, put_flash(socket, :success, message)}
+    {:noreply, put_flash(socket, type, message)}
   end
 
   def handle_event("delete_step", %{"uuid" => step_uuid}, socket) do

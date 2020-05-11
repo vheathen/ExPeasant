@@ -375,6 +375,9 @@ defmodule Peasant.Automation.Handler do
   def handle_call(:activate, _from, %{active: true} = automation),
     do: {:reply, :ok, automation}
 
+  def handle_call(:activate, _from, %{steps: []} = automation),
+    do: {:reply, {:error, "automation doesn't contain any steps"}, automation}
+
   def handle_call(:activate, _from, automation),
     do: {:reply, :ok, %{automation | active: true}, {:continue, {:persist, :activated}}}
 
