@@ -10,6 +10,7 @@ use Mix.Config
 # which you should run after static files are built and
 # before starting your production server.
 config :peasant, PeasantWeb.Endpoint,
+  http: [port: 80],
   url: [host: "peasant.local", port: 80],
   check_origin: false,
   cache_static_manifest: "priv/static/cache_manifest.json",

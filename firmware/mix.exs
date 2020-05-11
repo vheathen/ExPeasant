@@ -1,13 +1,15 @@
 defmodule Firmware.MixProject do
   use Mix.Project
 
-  @app :firmware
-  @version "0.1.0"
+  @app :peasant_nerves
+  @name "PeasantGrowController"
+  @version "0.2.2"
   @all_targets [:rpi, :rpi0, :rpi2, :rpi3, :rpi3a, :rpi4, :bbb, :x86_64]
 
   def project do
     [
       app: @app,
+      name: @name,
       version: @version,
       elixir: "~> 1.9",
       archives: [nerves_bootstrap: "~> 1.6"],
@@ -46,8 +48,16 @@ defmodule Firmware.MixProject do
       {:peasant, path: "../peasant"},
 
       # Dependencies for all targets except :host
-      {:nerves_runtime, "~> 0.6", targets: @all_targets},
+      {:nerves_runtime, "~> 0.8", targets: @all_targets},
       {:nerves_pack, "~> 0.2", targets: @all_targets},
+
+      # nerves hub
+      {:nerves_hub_cli, "~> 0.1", runtime: false},
+      {:nerves_hub_link, "~> 0.1", targets: @all_targets},
+      {:nerves_time, "~> 0.2"},
+
+      # VintageNet Wizard
+      {:vintage_net_wizard, "~> 0.2", targets: @all_targets},
 
       # Dependencies for specific targets
       {:nerves_system_rpi, "~> 1.11", runtime: false, targets: :rpi},

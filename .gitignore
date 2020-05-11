@@ -42,3 +42,6 @@ npm-debug.log
 /panel/
 
 /firmware/config/target.secret.exs
+
+# we don't want to flash out our certs, do we?
+/firmware/nerves-hub

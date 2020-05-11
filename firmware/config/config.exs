@@ -5,17 +5,27 @@
 # is restricted to this project.
 import Config
 
-config :firmware, target: Mix.target()
+config :peasant_nerves, target: Mix.target()
 
 # Customize non-Elixir parts of the firmware. See
 # https://hexdocs.pm/nerves/advanced-configuration.html for details.
 
-config :nerves, :firmware, rootfs_overlay: "rootfs_overlay"
+config :nerves, :firmware,
+  rootfs_overlay: "rootfs_overlay",
+  provisioning: :nerves_hub_link
 
 # Set the SOURCE_DATE_EPOCH date for reproducible builds.
 # See https://reproducible-builds.org/docs/source-date-epoch/ for more information
 
 config :nerves, source_date_epoch: "1577975236"
+
+config :nerves_hub_link,
+  fwup_public_keys: [:devkey],
+  remote_iex: true
+
+config :vintage_net_wizard,
+  port: 8080,
+  captive_portal: false
 
 # Use Ringlogger as the logger backend and remove :console.
 # See https://hexdocs.pm/ring_logger/readme.html for more information on
@@ -23,32 +33,8 @@ config :nerves, source_date_epoch: "1577975236"
 
 config :logger, backends: [RingLogger]
 
-# config :ui, UiWeb.Endpoint,
-#   url: [host: "localhost"],
-#   http: [port: 80],
-#   secret_key_base: "HEY05EB1dFVSu6KykKHuS4rQPQzSHv4F7mGVB/gnDLrIu75wE/ytBXy2TaL3A6RA",
-#   root: Path.dirname(__DIR__),
-#   server: true,
-#   render_errors: [view: UiWeb.ErrorView, accepts: ~w(html json)],
-#   pubsub: [name: Nerves.PubSub, adapter: Phoenix.PubSub.PG2],
-#   code_reloader: false
-
-# config :control, ControlWeb.Endpoint,
-#   url: [host: "nerves.local"],
-#   http: [port: 80],
-#   check_origin: false,
-#   secret_key_base: "ZCAulbkxba18+akiIzCTw/Kmod/hd4Ol91HL8nM/AFD11792CFM9h2Qe27HKQAUK",
-#   root: Path.dirname(__DIR__),
-#   server: true,
-#   render_errors: [view: ControlWeb.ErrorView, accepts: ~w(html json)],
-#   pubsub: [name: Nerves.PubSub, adapter: Phoenix.PubSub.PG2],
-#   code_reloader: false,
-#   live_view: [
-#     signing_salt: "yKuB4TrjwUnkPdRbnt1E89bCXJVKz/ND"
-#   ]
-
 import_config "../../peasant/config/config.exs"
-import_config "../../peasant/config/prod.exs"
+# import_config "../../peasant/config/prod.exs"
 
 config :phoenix, :json_library, Jason
 

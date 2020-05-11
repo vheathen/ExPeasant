@@ -42,6 +42,10 @@ config :nerves_firmware_ssh,
 
 key_mgmt = System.get_env("NERVES_NETWORK_KEY_MGMT") || "wpa_psk"
 
+config :vintage_net_wizard,
+  ssid: "peasant_wifi",
+  dns_name: "peasant.config"
+
 # Configure the network using vintage_net
 # See https://github.com/nerves-networking/vintage_net for more information
 config :vintage_net,
