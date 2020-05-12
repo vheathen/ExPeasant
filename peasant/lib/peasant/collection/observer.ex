@@ -55,7 +55,13 @@ defmodule Peasant.Collection.Observer do
 
   #### Support funcs
 
-  defp get_actions, do: get_actions(Application.get_env(:peasant, Actions))
+  defp get_actions do
+    :peasant
+    |> Application.get_env(Actions)
+    |> get_actions()
+
+    spread_actions_for_any()
+  end
 
   # defp get_action(config) when is_list(config) do
   #   action? =
@@ -134,4 +140,25 @@ defmodule Peasant.Collection.Observer do
   defp load_supported_tools([], _action), do: :ok
 
   defp get_supported_tools(action), do: action.__protocol__(:impls)
+
+  defp spread_actions_for_any do
+    {actions_for_any_list, tool_types} =
+      @tool_to_actions
+      |> Repo.list_full()
+      |> Map.pop(Any)
+
+    tool_types_list = Map.keys(tool_types)
+
+    Enum.each(
+      actions_for_any_list,
+      &Repo.put(tool_types_list, &1, @action_to_tools, persist: false)
+    )
+
+    Enum.each(
+      tool_types,
+      fn {tool, actions} ->
+        Repo.put(actions ++ actions_for_any_list, tool, @tool_to_actions, persist: false)
+      end
+    )
+  end
 end

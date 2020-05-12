@@ -56,10 +56,9 @@ defmodule Peasant.Collection.ObserverTest do
     end
   end
 
-  test "it should populate all tools" do
-    tools =
-      for {action, tools} <- Peasant.Tools.actions() do
-      end
+  test "it should populate all tools and actions" do
+    for {_action, _tools} <- Peasant.Tools.actions() do
+    end
   end
 
   describe "current_state/0" do
