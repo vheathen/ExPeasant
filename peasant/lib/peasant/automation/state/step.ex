@@ -23,41 +23,51 @@ defmodule Peasant.Automation.State.Step do
     timestamps()
   end
 
-  def required(type \\ "common")
+  defp required(type \\ "common")
 
-  def required(@action),
+  defp required(@action),
     do: ~w(
         tool_uuid
         action
       )a ++ required()
 
-  def required(@awaiting),
+  defp required(@awaiting),
     do: ~w(
         time_to_wait
       )a ++ required()
 
-  def required(_),
+  defp required(_),
     do: ~w(
         type
       )a
 
-  def not_required(type \\ "common")
+  defp not_required(type \\ "common")
 
-  def not_required(@action),
+  defp not_required(@action),
     do: ~w(
         action_config
         wait_for_events
       )a ++ not_required()
 
-  def not_required(_),
+  defp not_required(_),
     do: ~w(
         description
         active
       )a
 
   @impl Peasant.Schema
-  def changeset(state, %{type: type} = params) do
-    state
+  def changeset(step, params) do
+    params = Enum.into(params, %{})
+
+    default_type =
+      case step do
+        %__MODULE__{} -> step.type
+        %Ecto.Changeset{} -> fetch_field!(step, :type)
+      end
+
+    type = params[:type] || params["type"] || default_type
+
+    step
     |> cast(params, not_required(type) ++ required(type))
     |> validate_required(required(type))
     |> validate_type(:type)
@@ -65,12 +75,9 @@ defmodule Peasant.Automation.State.Step do
     |> maybe_validate_time_to_wait()
   end
 
-  def changeset(state, params) do
-    params = params |> Enum.into(%{}) |> Map.put(:type, @action)
-    changeset(state, params)
-  end
+  def types, do: @allowed_types
 
-  def validate_type(changeset, field) do
+  defp validate_type(changeset, field) do
     validate_change(
       changeset,
       field,
@@ -84,21 +91,21 @@ defmodule Peasant.Automation.State.Step do
     )
   end
 
-  def maybe_validate_time_to_wait(changeset) do
+  defp maybe_validate_time_to_wait(changeset) do
     case fetch_field(changeset, :type) do
       {_, @awaiting} -> validate_number(changeset, :time_to_wait, greater_than: -1)
       _ -> changeset
     end
   end
 
-  def maybe_validate_action(changeset) do
+  defp maybe_validate_action(changeset) do
     case fetch_field(changeset, :type) do
       {_, @action} -> validate_action(changeset, :action)
       _ -> changeset
     end
   end
 
-  def validate_action(%{} = changeset, field) do
+  defp validate_action(%{} = changeset, field) do
     validate_change(
       changeset,
       field,

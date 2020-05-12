@@ -15,9 +15,10 @@ defmodule Peasant.Automation.State.StepTest do
   ]
 
   @allowed_types [
-    "action",
-    "awaiting"
-  ]
+                   "action",
+                   "awaiting"
+                 ]
+                 |> Enum.sort()
 
   setup do
     step_params = new_step()
@@ -137,6 +138,14 @@ defmodule Peasant.Automation.State.StepTest do
                   {"must be greater than %{number}",
                    [validation: :number, kind: :greater_than, number: _]}
               ]} = new_step(type: "awaiting") |> Map.put(:time_to_wait, -1) |> Step.new()
+    end
+  end
+
+  describe "types()" do
+    @describetag :unit
+
+    test "should return allowed step types list" do
+      assert @allowed_types == Step.types() |> Enum.sort()
     end
   end
 end
