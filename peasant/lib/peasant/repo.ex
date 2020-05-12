@@ -22,6 +22,14 @@ defmodule Peasant.Repo do
     record
   end
 
+  def delete(id, domain, opts \\ []) do
+    if Keyword.get(opts, :persist, true), do: Keeper.delete(id)
+
+    domain
+    |> String.to_existing_atom()
+    |> Cachex.del!(id)
+  end
+
   def list(domain) do
     domain
     |> String.to_existing_atom()
