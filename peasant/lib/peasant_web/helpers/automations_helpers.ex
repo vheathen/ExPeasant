@@ -3,6 +3,13 @@ defmodule PeasantWeb.AutomationsHelpers do
 
   alias Peasant.Automations
 
+  @step_type_options Enum.map(
+                       Peasant.Automation.State.Step.types(),
+                       &{String.capitalize(&1), &1}
+                     )
+
+  def step_type_options, do: @step_type_options
+
   def get_automation(uuid) do
     Automations.get(uuid)
   end

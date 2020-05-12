@@ -19,6 +19,7 @@ defmodule PeasantWeb.Router do
 
     live "/", HomeLive, :home, as: :live_peasant
     live "/tools", ToolsLive, :tools, as: :live_peasant
+    live "/tools/:id", ToolsLive, :tools, as: :live_peasant
     live "/automations", AutomationsLive, :automations, as: :live_peasant
     live "/automation/", AutomationLive, :automation, as: :live_peasant
     live "/automation/:id", AutomationLive, :automation, as: :live_peasant

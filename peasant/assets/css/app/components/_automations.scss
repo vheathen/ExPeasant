@@ -37,5 +37,24 @@
     color: green;
     fill: green;
   }
+
+  .add-step-before {
+    position: absolute;
+    right: 1rem;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    width: auto;
+    height: auto;
+  }
+
+  .add-step-after {
+    position: absolute;
+    right: 1rem;
+    bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    width: auto;
+    height: auto;
+  }
 }
 

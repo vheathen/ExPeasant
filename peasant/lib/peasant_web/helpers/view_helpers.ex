@@ -49,6 +49,12 @@ defmodule PeasantWeb.ViewHelpers do
     """
   end
 
+  def shrink_tool_type(type) when is_atom(type),
+    do: type |> Atom.to_string() |> shrink_tool_type()
+
+  def shrink_tool_type("Elixir.Peasant.Tools." <> type), do: type
+  def shrink_tool_type(type), do: type
+
   @doc """
   Builds a modal.
   """

@@ -34,9 +34,32 @@ defmodule PeasantWeb.ToolsLive do
     {
       :noreply,
       socket
+      |> apply_action(params)
+    }
+  end
+
+  defp apply_action(socket, %{"id" => uuid} = _params),
+    do: fetch_tool(socket, uuid)
+
+  defp apply_action(socket, params),
+    do:
+      assign(
+        socket,
+        tool: nil,
+        changeset: nil,
+        uuid: nil
+      )
       |> assign_params(params, @sort_by)
       |> fetch_tools()
-    }
+      |> set_page_title()
+
+  defp fetch_tool(socket, uuid) do
+    assign(
+      socket,
+      tool: get_tool(uuid),
+      uuid: uuid
+    )
+    |> set_page_title()
   end
 
   defp fetch_tools(socket) do
@@ -117,5 +140,16 @@ defmodule PeasantWeb.ToolsLive do
       nil -> tools
       index -> List.update_at(tools, index, fun)
     end
+  end
+
+  defp set_page_title(socket) do
+    title =
+      cond do
+        socket.assigns.tool && socket.assigns.tool.new -> "New tool"
+        socket.assigns.tool -> socket.assigns.tool.name
+        true -> "Tools"
+      end
+
+    assign(socket, page_title: title)
   end
 end

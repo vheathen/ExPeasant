@@ -43,8 +43,11 @@
         <table class="table table-hover mt-0 dash-table clickable-rows">
           <thead>
             <tr>
-              <th>
+              <th class="overflow-hidden" style="max-width: 20px;">
                 <%= sort_link(@socket, @live_action, @params, :attached, "Attached") %>
+              </th>
+              <th>
+                <%= sort_link(@socket, @live_action, @params, :__struct__, "Type") %>
               </th>
               <th>
                 <%= sort_link(@socket, @live_action, @params, :name, "Name") %>
@@ -53,25 +56,24 @@
                 <%= sort_link(@socket, @live_action, @params, :placement, "Placement") %>
               </th>
               <th>
-                <%= sort_link(@socket, @live_action, @params, :__struct__, "Type") %>
-              </th>
-              <th>UUID</th>
-              <th>
                 <%= sort_link(@socket, @live_action, @params, :updated_at, "Updated") %>
+              </th>
+              <th>
+                Config
               </th>
             </tr>
           </thead>
           <tbody>
             <%= for tool <- @tools do %>
-              <tr>
-                <td class="tabular-column-name pl-4">
+              <tr class="table-<%= tool.attached && "success" || "default" %>">
+                <td style="max-width: 20px;">
                   <div class="tool-status-color bg-<%= attached_color(tool.attached) %> mr-2"></div>
                 </td>
-                <td class="tabular-column-name pl-4"><%= tool.name %></td>
-                <td><%= tool.placement %></td>
                 <td><%= shrink_tool_type(tool.__struct__) %></td>
-                <td><%= tool.uuid %></td>
+                <td><%= tool.name %></td>
+                <td><%= tool.placement %></td>
                 <td><%= format_timestamp(tool.updated_at) %></td>
+                <td><%= tool.config |> Jason.encode!() |> Jason.Formatter.pretty_print() %></td>
               </tr>
             <% end %>
           </tbody>

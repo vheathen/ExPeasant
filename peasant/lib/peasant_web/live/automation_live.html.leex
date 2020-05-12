@@ -67,9 +67,46 @@
 
   <h5 class="card-title">Steps</h5>
 
+  <%= if @step do %>
+    <%= live_modal @socket, PeasantWeb.StepEditLiveComponent,
+          id: @step && @step.uuid || :new_step,
+          step: @step,
+          title: @step && @step.uuid && "Edit step # #{@step_position}" || "Add new step as # #{@step_position}",
+          position: @step_position,
+          automation_uuid: @automation.uuid,
+          return_to: self_path(@socket, @params)
+          %>
+  <% end %>
+
+  <%= if @automation.steps == [] do %>
+    <button
+            phx-click="add_step_at"
+            phx-value-position="1"
+            class="btn btn-lg btn-success">
+
+      <i class="fas fa-plus"></i> <span>Add first step</span>
+    </button>
+  <% end %>
+
   <%= for {s, index} <- Enum.with_index(@automation.steps) do %>
 
     <div class="card mb-2 text-<%= active_color(s.active) %> <%= current_step_bg(s.uuid == @current_step_uuid) %>">
+      <button
+        phx-click="add_step_at"
+        phx-value-position=<%= index + 1 %>
+        class="btn btn-sm btn-success add-step-before">
+
+        <small><i class="fas fa-plus" title="Add a new step before"></i></small>
+      </button>
+
+      <button
+        phx-click="add_step_at"
+        phx-value-position=<%= index + 2 %>
+        class="btn btn-sm btn-success add-step-after">
+
+        <small><i class="fas fa-plus" title="Add a new step after"></i></small>
+      </button>
+
       <div class="card-body">
 
         <div class="row">
@@ -77,23 +114,25 @@
           <div class="col-1">
             <div class="row mb-2">
               <div class="col-8 text-right">
-                <%= index + 1 %>
+                #<%= index + 1 %>
               </div>
-              <div class="col-4 p-0 text-center">
-                <i class="<%= s.type == "awaiting" && "far fa-clock" || "fas fa-cogs" %>"></i>
-              </div>
-            </div>
-
-            <div class="row">
-              <div class="col text-right pl-0">
-                <div class="badge badge-pill badge-<%= s.active && "success" || "secondary" %>">
-                  <small><%= s.active && "Active" || "Disabled" %></small>
-                </div>
+              <div class="col-4 p-1 text-center card <%= s.active && "bg-success" || "shadow-none" %> ">
+                <i class="<%= s.type == "awaiting" && "far fa-clock" || "fas fa-cogs" %> <%= s.active && "text-white" || "" %>"></i>
               </div>
             </div>
 
             <div class="row">
               <div class="col text-right p-0">
+                <button
+                  phx-click="edit_step"
+                  phx-value-uuid="<%= s.uuid %>"
+                  phx-value-index="<%= index %>"
+                  title="Edit step"
+                  type="button"
+                  class="pl-1 pr-1 btn btn-link text-primary" <%= @automation.active && "disabled" || "" %>>
+                  <i class="fas fa-tools"></i>
+                </button>
+
                 <button
                   phx-click="revert_step_state"
                   phx-value-uuid="<%= s.uuid %>"
@@ -111,14 +150,14 @@
                   title="Delete step"
                   type="button"
                   class="pl-1 pr-1 btn btn-link text-danger" <%= @automation.active && "disabled" || "" %>>
-                  <i class="far fa-trash-alt"></i>
+                  <i class="fas fa-trash"></i>
                 </button>
               </div>
             </div>
 
           </div>
 
-          <div class="col-11">
+          <div class="col-11 pl-5">
 
             <div class="row mb-2">
 
@@ -126,16 +165,16 @@
                 <% {tool_type, tool_name} = get_tool_details(s) %>
 
                 <div class="col-4">
-                  <small>Action:</small><br />
-                  <%= s.action %>
-                </div>
-                <div class="col-4">
                   <small>Tool name:</small><br />
                   <%= tool_name %>
                 </div>
                 <div class="col-4">
                   <small>Tool type:</small><br />
-                  <%= tool_type %>
+                  <span title="<%= tool_type %>"><%= shrink_tool_type(tool_type) %></span>
+                </div>
+                <div class="col-4">
+                  <small>Action:</small><br />
+                  <%= s.action %>
                 </div>
 
               <% else %>
@@ -173,4 +212,6 @@
   <% end %>
 
 <% end %>
+</div>
+
 </div>

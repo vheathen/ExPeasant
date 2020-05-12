@@ -12,4 +12,8 @@ defmodule Peasant.Automations do
   def change_automation(%Automation.State{} = automation, attrs \\ %{}) do
     Automation.State.changeset(automation, attrs)
   end
+
+  def change_automation_step(%Automation.State.Step{} = step, attrs \\ %{}) do
+    Automation.State.Step.changeset(step, attrs)
+  end
 end
