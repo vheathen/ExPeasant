@@ -61,6 +61,8 @@ defmodule Peasant.Collection.Observer do
     |> get_actions()
 
     spread_actions_for_any()
+
+    sort_tools_and_actions()
   end
 
   # defp get_action(config) when is_list(config) do
@@ -126,12 +128,10 @@ defmodule Peasant.Collection.Observer do
   defp load_supported_tools([tool | tools], action) do
     (Repo.get(tool, @tool_to_actions) || [])
     |> List.insert_at(0, action)
-    |> Enum.uniq()
     |> Repo.put(tool, @tool_to_actions, persist: false)
 
     (Repo.get(action, @action_to_tools) || [])
     |> List.insert_at(0, tool)
-    |> Enum.uniq()
     |> Repo.put(action, @action_to_tools, persist: false)
 
     load_supported_tools(tools, action)
@@ -154,11 +154,27 @@ defmodule Peasant.Collection.Observer do
       &Repo.put(tool_types_list, &1, @action_to_tools, persist: false)
     )
 
+    Repo.delete(Any, @tool_to_actions, persist: false)
+
     Enum.each(
       tool_types,
       fn {tool, actions} ->
         Repo.put(actions ++ actions_for_any_list, tool, @tool_to_actions, persist: false)
       end
     )
+  end
+
+  defp sort_tools_and_actions do
+    @tool_to_actions
+    |> Repo.list_full()
+    |> Enum.each(fn {tool, actions} ->
+      Repo.put(actions |> Enum.sort() |> Enum.uniq(), tool, @tool_to_actions, persist: false)
+    end)
+
+    @action_to_tools
+    |> Repo.list_full()
+    |> Enum.each(fn {action, tools} ->
+      Repo.put(tools |> Enum.sort() |> Enum.uniq(), action, @action_to_tools, persist: false)
+    end)
   end
 end
