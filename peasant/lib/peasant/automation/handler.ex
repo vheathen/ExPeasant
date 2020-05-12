@@ -277,7 +277,7 @@ defmodule Peasant.Automation.Handler do
     |> Event.StepSkipped.new()
     |> notify()
 
-    Process.send(self(), :next_step, [])
+    Process.send_after(self(), :next_step, 1, [])
 
     {:noreply, automation}
   end
@@ -335,7 +335,7 @@ defmodule Peasant.Automation.Handler do
       ) do
     finish_step(current_step_uuid, automation)
 
-    Process.send(self(), :next_step, [])
+    Process.send_after(self(), :next_step, 1, [])
 
     {:noreply, automation}
   end
@@ -360,7 +360,7 @@ defmodule Peasant.Automation.Handler do
     |> Event.StepFailed.new()
     |> notify()
 
-    Process.send(self(), :next_step, [])
+    Process.send_after(self(), :next_step, 1, [])
 
     {:noreply, automation}
   end
