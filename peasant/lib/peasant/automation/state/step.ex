@@ -72,6 +72,7 @@ defmodule Peasant.Automation.State.Step do
     |> validate_required(required(type))
     |> validate_type(:type)
     |> maybe_validate_action()
+    |> translate_action()
     |> maybe_validate_time_to_wait()
   end
 
@@ -143,4 +144,18 @@ defmodule Peasant.Automation.State.Step do
 
   defp type_error(field),
     do: [{field, {"not a proper step type", [validation: :type]}}]
+
+  defp translate_action(%{valid?: true} = changeset) do
+    case fetch_field!(changeset, :action) do
+      action when is_binary(action) ->
+        cast(changeset, %{action: String.to_existing_atom(action)}, [:action])
+
+      _ ->
+        changeset
+    end
+  end
+
+  defp translate_action(changeset) do
+    changeset
+  end
 end
