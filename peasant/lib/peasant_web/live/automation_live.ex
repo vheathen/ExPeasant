@@ -325,7 +325,7 @@ defmodule PeasantWeb.AutomationLive do
 
   def handle_info(msg, socket) do
     Logger.debug("Unhandled message: #{inspect(msg)}")
-    socket
+    {:noreply, socket}
   end
 
   defp self_path(socket, args \\ [], params) do
