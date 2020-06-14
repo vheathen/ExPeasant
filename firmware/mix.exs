@@ -3,7 +3,7 @@ defmodule Firmware.MixProject do
 
   @app :peasant_nerves
   @name "PeasantGrowController"
-  @version "0.3.2"
+  @version "0.3.3"
   @all_targets [:rpi, :rpi0, :rpi2, :rpi3, :rpi3a, :rpi4, :bbb, :x86_64]
 
   def project do
