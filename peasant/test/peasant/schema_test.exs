@@ -35,7 +35,7 @@ defmodule Peasant.SchemaTest do
     end
 
     test "should call a local `changeset/2` function if available and return a full struct" do
-      name = Faker.Name.En.name()
+      name = Faker.Person.En.name()
 
       assert %FakeSchemaWithChangeset{name: ^name} = FakeSchemaWithChangeset.new(%{name: name})
     end
