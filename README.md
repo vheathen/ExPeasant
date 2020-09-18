@@ -36,10 +36,16 @@ Automation is a list of tools actions, like a cyclic schedule.
 For example, one of my current automations:
 
 ![Automation Screenshot 1](images/automation-001.png?raw=true)
+
 ![Automation Screenshot 2](images/automation-002.png?raw=true)
 
 
 More main part implementation details is in the `peasant` (README)[peasant/README.md], but it can (and most possibly is) outdated.
+
+## Supported tools (devices)
+
+- [X] Simple GPIO-pin controlled relay 
+- [ ] ds18b20 1wire temperature sensor
 
 ## UI
 UI is based on the Phoenix LiveView. 
@@ -62,6 +68,23 @@ UI doesn't have any tests as of yet.
 
 The project uses [Nerves Hub](https://www.nerves-hub.org/) for automatic OTA firmware updates.
 
+## Other
+Please don't forget to change required `firmware` configs. You should at lease create `firmware/config/target.secret.exs` file with salts:
+
+```elixir
+import Config
+
+config :peasant, PeasantWeb.Endpoint,
+  secret_key_base: "YOUR SECRET KEY BASE: use `mix phx.gen.secret`",
+  live_view: [signing_salt: "YOUR SIGNING KEY: use `mix phx.gen.secret 32`"]
+```
+
+Also the project uses VintageNet WiFi Wizard to configure wifi: it creates a WiFi network with SSID `peasant_wifi` if no networks were configured before, you can connect into it and enter your main SSID\password settings.
+
+You can use try to use `http://peasant.local` URL to connect to the UI or connect with ssh to the Nerves command prompt.
+
+The following text is almost unaltered original Nerves poncho example README. 
+
 ## Hardware
 
 This example serves a Phoenix-based web page over the network. The steps below
@@ -81,7 +104,7 @@ see the [`vintage_net` documentation](https://hexdocs.pm/vintage_net/).
 
     ```bash
     # These steps only need to be done once.
-    cd ui
+    cd peasant
     mix deps.get
     cd assets
     npm install
