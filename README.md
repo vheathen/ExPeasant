@@ -35,8 +35,8 @@ Automation is a list of tools actions, like a cyclic schedule.
 
 For example, one of my current automations:
 
-[[/images/automation-001.png|Automation Screenshot 1]]
-[[/images/automation-002.png|Automation Screenshot 2]]
+![Automation Screenshot 1](images/automation-001.png?raw=true)
+![Automation Screenshot 2](images/automation-002.png?raw=true)
 
 
 More main part implementation details is in the `peasant` (README)[peasant/README.md], but it can (and most possibly is) outdated.
@@ -48,11 +48,11 @@ Currently it allows to
 
 list Tools:
 
-[[/images/tools-001.png|Tools list]]
+![Tools list](images/tools-001.png?raw=true)
 
 list current, add new automations:
 
-[[/images/automation-003.png|Automations list]]
+![Automations list](images/automation-003.png?raw=true)
 
 start, stop a specific automation, add, delete, pause or alter automation steps.
 
