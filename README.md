@@ -129,8 +129,8 @@ see the [`vintage_net` documentation](https://hexdocs.pm/vintage_net/).
 5. Specify your target and other environment variables as needed:
 
     ```bash
-    export MIX_TARGET=rpi0
-    # If you're using WiFi:
+    export MIX_TARGET=rpi3
+    # If you're using WiFi (not necessary as WiFi should be configured via wizard):
     # export NERVES_NETWORK_SSID=your_wifi_name
     # export NERVES_NETWORK_PSK=your_wifi_password
     ```
@@ -145,8 +145,8 @@ see the [`vintage_net` documentation](https://hexdocs.pm/vintage_net/).
 
 7. Insert the SD card into your target board and connect the USB cable or otherwise power it on
 8. Wait for it to finish booting (5-10 seconds)
-9. Open a browser window on your host computer to `http://nerves.local/`
-10. You should see a "Welcome to Phoenix!" page
+9. Open a browser window on your host computer to `http://peasant.local/`
+10. You should see a "Tech'n'Plants Peasant" main page
 
 [Phoenix Framework]: http://www.phoenixframework.org/
 [Poncho Projects]: http://embedded-elixir.com/post/2017-05-19-poncho-projects/
