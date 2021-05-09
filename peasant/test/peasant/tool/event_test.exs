@@ -14,18 +14,18 @@ defmodule Peasant.Tool.EventTest do
       details = Faker.Lorem.sentences()
       params = [action_ref: ref, tool_uuid: uuid, details: details]
 
-      assert %FakeEvent2{action_ref: ref, tool_uuid: uuid, details: details} =
+      assert %FakeEvent2{action_ref: ^ref, tool_uuid: ^uuid, details: ^details} =
                FakeEvent2.new(params)
 
       params = Enum.into(params, %{})
 
-      assert %FakeEvent2{action_ref: ref, tool_uuid: uuid, details: details} =
+      assert %FakeEvent2{action_ref: ^ref, tool_uuid: ^uuid, details: ^details} =
                FakeEvent2.new(params)
 
-      assert %FakeEvent2{action_ref: ref, tool_uuid: uuid, details: nil} =
+      assert %FakeEvent2{action_ref: ^ref, tool_uuid: ^uuid, details: nil} =
                FakeEvent2.new(action_ref: ref, tool_uuid: uuid)
 
-      assert %FakeEvent2{action_ref: nil, tool_uuid: uuid, details: nil} =
+      assert %FakeEvent2{action_ref: nil, tool_uuid: ^uuid, details: nil} =
                FakeEvent2.new(tool_uuid: uuid)
     end
 
@@ -42,7 +42,7 @@ defmodule Peasant.Tool.EventTest do
 
       params = [action_ref: ref, tool_uuid: uuid, details: details]
 
-      assert %FakeEvent3{action_ref: ref, tool_uuid: uuid, details: details} =
+      assert %FakeEvent3{action_ref: ^ref, tool_uuid: ^uuid, details: ^details} =
                FakeEvent3.new(params)
     end
   end

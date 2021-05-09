@@ -63,7 +63,7 @@ defmodule Peasant.AutomationInActionTest do
           assert {:ok, step_uuid} = Automation.add_step_at(a1, step, :last)
 
           assert_receive %AE.StepAddedAt{
-            automation_uuid: a1,
+            automation_uuid: ^a1,
             step: %{uuid: ^step_uuid},
             index: -1
           }
@@ -152,7 +152,7 @@ defmodule Peasant.AutomationInActionTest do
       refute_received %AE.StepStopped{step_uuid: ^s3u}
     end)
 
-    assert_receive %AE.StepStopped{step_uuid: ^s3u, step_duration: duration}
+    assert_receive %AE.StepStopped{step_uuid: ^s3u, step_duration: _duration}
 
     # Logger.warn("s3 pause actual duration: #{duration}")
 
@@ -171,7 +171,7 @@ defmodule Peasant.AutomationInActionTest do
       refute_received %AE.StepStopped{step_uuid: ^s5u}
     end)
 
-    assert_receive %AE.StepStopped{step_uuid: ^s5u, step_duration: duration}
+    assert_receive %AE.StepStopped{step_uuid: ^s5u, step_duration: _duration}
 
     # Logger.warn("s5 pause actual duration: #{duration}")
 

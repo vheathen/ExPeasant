@@ -7,7 +7,7 @@ defmodule Peasant.EventTest do
 
   @tag :unit
   test "should create struct" do
-    assert event = %TestEvent1{}
+    assert _event = %TestEvent1{}
   end
 
   defmodule TestEvent2 do

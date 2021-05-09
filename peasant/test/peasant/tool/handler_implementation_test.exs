@@ -112,7 +112,7 @@ defmodule Peasant.Tool.HandlerImplementationTest do
       action = Action.FakeAction
       action_config = %{}
 
-      assert {:reply, {:error, :not_attached}, tool} =
+      assert {:reply, {:error, :not_attached}, ^tool} =
                Handler.handle_call({:commit, action, action_config}, self(), tool)
 
       refute_receive _, 10
@@ -198,7 +198,9 @@ defmodule Peasant.Tool.HandlerImplementationTest do
       action_config = %{}
       action_ref = UUID.uuid4()
 
-      assert {:noreply, tool, {:continue, {:maybe_persist, true, _}}} =
+      attached_tool = %{tool | attached: true}
+
+      assert {:noreply, ^attached_tool, {:continue, {:maybe_persist, true, _}}} =
                Handler.handle_continue({:commit, action, action_config, action_ref}, tool)
 
       refute_receive _, 10

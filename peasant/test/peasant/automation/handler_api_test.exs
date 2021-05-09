@@ -25,7 +25,7 @@ defmodule Peasant.Automation.HandlerAPITest do
     test "should start a process with via_tuple name", %{automation: %{uuid: uuid} = automation} do
       assert {:ok, pid} = Handler.start_link(automation)
       assert is_pid(pid)
-      assert [{pid, nil}] = Registry.lookup(Peasant.Registry, uuid)
+      assert [{^pid, nil}] = Registry.lookup(Peasant.Registry, uuid)
     end
   end
 

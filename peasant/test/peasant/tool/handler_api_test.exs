@@ -23,7 +23,7 @@ defmodule Peasant.Tool.HandlerAPITest do
     test "should start a process with via_tuple name", %{fake_tool: %{uuid: uuid} = tool} do
       assert {:ok, pid} = Handler.start_link(tool)
       assert is_pid(pid)
-      assert [{pid, nil}] = Registry.lookup(Peasant.Registry, uuid)
+      assert [{^pid, nil}] = Registry.lookup(Peasant.Registry, uuid)
     end
   end
 
