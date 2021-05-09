@@ -29,14 +29,6 @@
     </div>
   </form>
 
-  <%= if false do # @port do %>
-    <%= live_modal @socket, SocketInfoComponent,
-          port: @port,
-          title: inspect(@port),
-          return_to: self_path(@socket, @menu.node, @params),
-          live_dashboard_path: &live_dashboard_path(@socket, &1, &2, &3, @params) %>
-  <% end %>
-
   <div class="card tabular-card mb-4 mt-4">
     <div class="card-body p-0">
       <div class="dash-table-wrapper">
